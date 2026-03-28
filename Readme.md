@@ -74,7 +74,7 @@ curl -X POST "http://localhost:8080/api/v1/vulnerable/magic-link?email=alice@com
 # Copy the token, then verify:
 curl "http://localhost:8080/api/v1/vulnerable/magic-link/verify?token=<TOKEN>"
 # Replay the same token again — still works!
-# Crack the JWT secret with: hashcat -m 16500 -a 3 <jwt> ?a?a?a?a?a?a?a?a?a?a?a
+# Crack the JWT secret with: hashcat -m 16500 <jwt> /path/to/wordlist.txt
 
 # SECURE: Strong 256-bit key, 5-min expiry, single-use
 curl -X POST "http://localhost:8080/api/v1/secure/magic-link?email=alice@company.com"

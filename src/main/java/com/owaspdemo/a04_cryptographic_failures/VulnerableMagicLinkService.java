@@ -25,8 +25,9 @@ import java.util.Map;
 public class VulnerableMagicLinkService {
 
     // BAD: Weak secret that can be brute-forced offline
+    // Padded to 32 bytes for JJWT minimum, but still trivially crackable
     private static final SecretKey WEAK_KEY = Keys.hmacShaKeyFor(
-            "password123".getBytes(StandardCharsets.UTF_8));
+            "password123-----padding---------".getBytes(StandardCharsets.UTF_8));
 
     public String generateToken(String email) {
         String jwt = Jwts.builder()
