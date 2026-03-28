@@ -1,0 +1,30 @@
+# A02 - Security Misconfiguration: intentionally insecure settings for demo
+spring:
+  h2:
+    console:
+      enabled: true
+      settings:
+        web-allow-others: true
+
+server:
+  error:
+    include-stacktrace: always
+    include-message: always
+    include-binding-errors: always
+    include-exception: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    env:
+      show-values: ALWAYS
+    health:
+      show-details: always
+
+# Simulating a leaked secret in config
+app:
+  secret-api-key: sk-super-secret-api-key-12345
+  database-password: ProductionP@ssw0rd!
