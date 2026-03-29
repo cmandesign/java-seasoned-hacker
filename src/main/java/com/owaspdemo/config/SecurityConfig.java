@@ -12,11 +12,37 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(false);
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -32,6 +58,7 @@ public class SecurityConfig {
     public SecurityFilterChain vulnerableFilterChain(HttpSecurity http) throws Exception {
         http
             .securityMatcher("/api/v1/vulnerable/**")
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
@@ -41,18 +68,21 @@ public class SecurityConfig {
     }
 
     /**
-     * Secure endpoints: proper auth, CSRF for browser clients, strict headers.
-     * For demo simplicity we use HTTP Basic — in production you'd use OAuth2/JWT.
+     * Secure endpoints: JWT authentication, CSRF disabled for REST API, strict headers.
      */
     @Bean
     @Order(2)
     public SecurityFilterChain secureFilterChain(HttpSecurity http) throws Exception {
         http
             .securityMatcher("/api/v1/secure/**")
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable) // disabled for REST API demo; enable for browser forms
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-            .httpBasic(basic -> {});
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/v1/secure/auth/login").permitAll()
+                .requestMatchers("/api/v1/secure/magic-link/verify").permitAll()
+                .anyRequest().authenticated())
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -63,6 +93,7 @@ public class SecurityConfig {
     @Order(3)
     public SecurityFilterChain defaultFilterChain(HttpSecurity http) throws Exception {
         http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()

@@ -26,7 +26,7 @@ public class SecureAccountController {
 
     @GetMapping("/{userId}")
     @PreAuthorize("@accountOwnership.isOwner(authentication, #userId)")
-    @Operation(summary = "Get user profile (ownership enforced)", description = "Auth: HTTP Basic. alice can read id=2, admin can read any.")
+    @Operation(summary = "Get user profile (ownership enforced)", description = "Auth: JWT. alice can read id=2, admin can read any.")
     public ResponseEntity<?> getAccount(
             @Parameter(description = "User ID", example = "2") @PathVariable Long userId) {
         return userRepository.findById(userId)

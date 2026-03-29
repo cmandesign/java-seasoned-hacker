@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -90,8 +91,21 @@ public class AuthController {
 
     @GetMapping("/api/v1/secure/auth/me")
     @Operation(summary = "Get current user from JWT (validates alg, issuer, audience, expiry)")
-    public Map<String, Object> secureMe(
-            @Parameter(description = "RSA-signed JWT from login") @RequestParam String token) {
-        return secureJwt.parseToken(token);
+    public Map<String, Object> secureMe() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Map.of("error", "Not authenticated");
+        }
+        
+        String username = authentication.getName();
+        String role = authentication.getAuthorities().stream()
+                .findFirst()
+                .map(auth -> auth.getAuthority().replace("ROLE_", ""))
+                .orElse("UNKNOWN");
+        
+        return Map.of(
+                "username", username,
+                "role", role
+        );
     }
 }

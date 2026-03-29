@@ -22,7 +22,7 @@ public class VulnerableJwtUtil {
 
     // BAD: trivially weak secret
     private static final SecretKey KEY = Keys.hmacShaKeyFor(
-            "secretsecretsecretsecretsecretsecret".getBytes(StandardCharsets.UTF_8));
+            "simple_plan".getBytes(StandardCharsets.UTF_8));
 
     public String generateToken(String username, String role) {
         return Jwts.builder()
