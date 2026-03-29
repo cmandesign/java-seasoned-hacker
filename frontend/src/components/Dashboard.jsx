@@ -78,9 +78,7 @@ const Dashboard = () => {
       const formData = new FormData();
       formData.append('file', photoFile);
       const url = `/api/v1/${apiMode}/accounts/${user.userId}/photo`;
-      const res = await axios.post(url, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await axios.post(url, formData);
       setPhotoMsg(res.data.message || 'Photo uploaded');
       setPhotoFile(null);
     } catch (err) {

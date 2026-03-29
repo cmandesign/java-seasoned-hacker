@@ -73,6 +73,9 @@ public class VulnerableAccountController {
         // BAD: Using the client-supplied filename without any sanitization
         // An attacker can upload a file named "../../etc/cron.d/backdoor" to write anywhere on disk
         String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Filename is required"));
+        }
         Path uploadPath = Paths.get(UPLOAD_DIR);
         Files.createDirectories(uploadPath);
 
