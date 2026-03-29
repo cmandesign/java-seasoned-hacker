@@ -126,19 +126,24 @@ curl -X POST "http://localhost:8080/api/v1/secure/otp/verify?sessionId=<SESSION_
 ### A07 — Authentication Failures (JWT alg:none)
 
 ```bash
-# VULNERABLE: Get a JWT with weak secret
+# VULNERABLE: Login with real credentials, get a JWT signed with weak HMAC secret
 curl -X POST http://localhost:8080/api/v1/vulnerable/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","role":"USER"}'
+  -d '{"username":"alice","password":"Alice123!"}'
 
 # Decode at jwt.io, change role to "ADMIN", re-sign with the leaked secret
-# Or craft an alg:none token
+# Secret: "secretsecretsecretsecretsecretsecret"
 curl "http://localhost:8080/api/v1/vulnerable/auth/me?token=<FORGED_TOKEN>"
+
+# Wrong password -> 401
+curl -X POST http://localhost:8080/api/v1/vulnerable/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"wrong"}'
 
 # SECURE: RSA-256 signed, validates issuer/audience/expiry
 curl -X POST http://localhost:8080/api/v1/secure/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","role":"USER"}'
+  -d '{"username":"alice","password":"Alice123!"}'
 
 # Tamper with the token and try:
 curl "http://localhost:8080/api/v1/secure/auth/me?token=<TAMPERED_TOKEN>"  # Rejected

@@ -1,10 +1,14 @@
 package com.owaspdemo.a07_authentication_failures;
 
+import com.owaspdemo.common.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -15,28 +19,41 @@ public class AuthController {
 
     private final VulnerableJwtUtil vulnerableJwt;
     private final SecureJwtUtil secureJwt;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(VulnerableJwtUtil vulnerableJwt, SecureJwtUtil secureJwt) {
+    public AuthController(VulnerableJwtUtil vulnerableJwt, SecureJwtUtil secureJwt,
+                          UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.vulnerableJwt = vulnerableJwt;
         this.secureJwt = secureJwt;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // --- Vulnerable ---
 
     @PostMapping("/api/v1/vulnerable/auth/login")
-    @Operation(summary = "Login (weak HMAC JWT)", description = "Secret is 'secretsecretsecretsecretsecretsecret'. Forge a token with role=ADMIN at jwt.io")
-    public Map<String, String> vulnerableLogin(
+    @Operation(summary = "Login (weak HMAC JWT)", description = "Verifies credentials, then issues a JWT signed with weak secret. Crack it at jwt.io.")
+    public ResponseEntity<?> vulnerableLogin(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    content = @Content(examples = @ExampleObject(value = "{\"username\": \"alice\", \"role\": \"USER\"}")))
+                    content = @Content(examples = @ExampleObject(value = "{\"username\": \"alice\", \"password\": \"Alice123!\"}")))
             @RequestBody Map<String, String> body) {
-        String username = body.getOrDefault("username", "guest");
-        String role = body.getOrDefault("role", "USER");
+        String username = body.get("username");
+        String password = body.get("password");
+
+        var user = userRepository.findByUsername(username);
+        if (user.isEmpty() || !passwordEncoder.matches(password, user.get().getPasswordHash())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid credentials"));
+        }
+
+        String role = user.get().getRole().name();
         String token = vulnerableJwt.generateToken(username, role);
-        return Map.of(
+        return ResponseEntity.ok(Map.of(
                 "token", token,
                 "hint", "Secret is 'secretsecretsecretsecretsecretsecret'. " +
                         "Try decoding at jwt.io and forging a token with role=ADMIN."
-        );
+        ));
     }
 
     @GetMapping("/api/v1/vulnerable/auth/me")
@@ -49,18 +66,26 @@ public class AuthController {
     // --- Secure ---
 
     @PostMapping("/api/v1/secure/auth/login")
-    @Operation(summary = "Login (RSA-256 JWT)", description = "15-min expiry, validates issuer + audience")
-    public Map<String, String> secureLogin(
+    @Operation(summary = "Login (RSA-256 JWT)", description = "Verifies credentials, then issues RSA-signed JWT. 15-min expiry, validates issuer + audience.")
+    public ResponseEntity<?> secureLogin(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    content = @Content(examples = @ExampleObject(value = "{\"username\": \"alice\", \"role\": \"USER\"}")))
+                    content = @Content(examples = @ExampleObject(value = "{\"username\": \"alice\", \"password\": \"Alice123!\"}")))
             @RequestBody Map<String, String> body) {
-        String username = body.getOrDefault("username", "guest");
-        String role = body.getOrDefault("role", "USER");
+        String username = body.get("username");
+        String password = body.get("password");
+
+        var user = userRepository.findByUsername(username);
+        if (user.isEmpty() || !passwordEncoder.matches(password, user.get().getPasswordHash())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid credentials"));
+        }
+
+        String role = user.get().getRole().name();
         String token = secureJwt.generateToken(username, role);
-        return Map.of(
+        return ResponseEntity.ok(Map.of(
                 "token", token,
                 "note", "RSA-256 signed. 15-min expiry. Tamper and it will be rejected."
-        );
+        ));
     }
 
     @GetMapping("/api/v1/secure/auth/me")
