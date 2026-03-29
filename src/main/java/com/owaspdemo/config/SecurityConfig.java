@@ -51,7 +51,11 @@ public class SecurityConfig {
             .securityMatcher("/api/v1/secure/**")
             .csrf(AbstractHttpConfigurer::disable) // disabled for REST API demo; enable for browser forms
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/v1/secure/auth/login").permitAll()
+                .requestMatchers("/api/v1/secure/login").permitAll()
+                .requestMatchers("/api/v1/secure/magic-link/**").permitAll()
+                .anyRequest().authenticated())
             .httpBasic(basic -> {});
         return http.build();
     }
