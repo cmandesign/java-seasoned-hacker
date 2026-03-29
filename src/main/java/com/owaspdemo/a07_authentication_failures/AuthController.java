@@ -49,7 +49,8 @@ public class AuthController {
         }
 
         String role = user.get().getRole().name();
-        String token = vulnerableJwt.generateToken(username, role);
+        Long userId = user.get().getId();
+        String token = vulnerableJwt.generateToken(username, role, userId);
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "hint", "Secret is 'secretsecretsecretsecretsecretsecret'. " +
@@ -82,7 +83,8 @@ public class AuthController {
         }
 
         String role = user.get().getRole().name();
-        String token = secureJwt.generateToken(username, role);
+        Long userId = user.get().getId();
+        String token = secureJwt.generateToken(username, role, userId);
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "note", "RSA-256 signed. 15-min expiry. Tamper and it will be rejected."

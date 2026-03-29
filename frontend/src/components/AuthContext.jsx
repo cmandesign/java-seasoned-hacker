@@ -25,7 +25,8 @@ export const AuthProvider = ({ children }) => {
         const decoded = jwtDecode(token);
         setUser({
           username: decoded.username || decoded.sub,
-          role: decoded.role
+          role: decoded.role,
+          userId: decoded.userId
         });
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       } catch (error) {
@@ -50,7 +51,8 @@ export const AuthProvider = ({ children }) => {
       const decoded = jwtDecode(token);
       setUser({
         username: decoded.username || decoded.sub,
-        role: decoded.role
+        role: decoded.role,
+        userId: decoded.userId
       });
 
       return { success: true };

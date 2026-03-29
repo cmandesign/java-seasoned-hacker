@@ -11,16 +11,20 @@ const Dashboard = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchProfile();
-  }, [apiMode]);
+    if (user && (apiMode === 'secure' || user.userId)) {
+      fetchProfile();
+    }
+  }, [apiMode, user]);
 
   const fetchProfile = async () => {
     try {
-      let url = `/api/v1/${apiMode}/auth/me`;
-      if (apiMode === 'vulnerable') {
-        // Vulnerable endpoint expects token as query param
-        const token = localStorage.getItem('token');
-        url += `?token=${token}`;
+      let url;
+      if (apiMode === 'vulnerable' && user?.userId) {
+        // Use vulnerable endpoint with userId from JWT
+        url = `/api/v1/vulnerable/accounts/${user.userId}`;
+      } else {
+        // Use secure /me endpoint
+        url = `/api/v1/secure/auth/me`;
       }
       const response = await axios.get(url);
       setProfile(response.data);
