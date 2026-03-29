@@ -12,7 +12,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +26,8 @@ import java.util.Map;
 @RequestMapping("/api/v1/vulnerable/accounts")
 @Tag(name = "A01 - Broken Access Control", description = "IDOR — no auth, no ownership check")
 public class VulnerableAccountController {
+
+    private static final String UPLOAD_DIR = "uploads/photos";
 
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
@@ -55,6 +62,28 @@ public class VulnerableAccountController {
                     return ResponseEntity.ok(toDto(user));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{userId}/photo")
+    @Operation(summary = "Upload profile photo (path traversal vulnerable)",
+            description = "BAD: uses original filename directly — attacker can send ../../etc/cron.d/evil")
+    public ResponseEntity<?> uploadPhoto(
+            @Parameter(description = "User ID", example = "2") @PathVariable Long userId,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        // BAD: Using the client-supplied filename without any sanitization
+        // An attacker can upload a file named "../../etc/cron.d/backdoor" to write anywhere on disk
+        String originalFilename = file.getOriginalFilename();
+        Path uploadPath = Paths.get(UPLOAD_DIR);
+        Files.createDirectories(uploadPath);
+
+        // BAD: directly concatenating user-controlled filename — classic path traversal
+        Path destination = uploadPath.resolve(originalFilename);
+        file.transferTo(destination.toFile());
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Photo uploaded successfully",
+                "path", destination.toString()
+        ));
     }
 
     @GetMapping("/{userId}/tickets")

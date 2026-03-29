@@ -13,6 +13,9 @@ const Dashboard = () => {
   const [newEmail, setNewEmail] = useState('');
   const [emailMsg, setEmailMsg] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoMsg, setPhotoMsg] = useState('');
+  const [photoError, setPhotoError] = useState('');
 
   useEffect(() => {
     if (user && (apiMode === 'secure' || user.userId)) {
@@ -63,6 +66,25 @@ const Dashboard = () => {
       fetchProfile();
     } catch (err) {
       setEmailError(err.response?.data?.error || 'Failed to update email');
+    }
+  };
+
+  const handleUploadPhoto = async (e) => {
+    e.preventDefault();
+    setPhotoMsg('');
+    setPhotoError('');
+    if (!photoFile || !user?.userId) return;
+    try {
+      const formData = new FormData();
+      formData.append('file', photoFile);
+      const url = `/api/v1/${apiMode}/accounts/${user.userId}/photo`;
+      const res = await axios.post(url, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setPhotoMsg(res.data.message || 'Photo uploaded');
+      setPhotoFile(null);
+    } catch (err) {
+      setPhotoError(err.response?.data?.error || 'Failed to upload photo');
     }
   };
 
@@ -134,6 +156,27 @@ const Dashboard = () => {
               {emailError && <div className="error-message">{emailError}</div>}
               <button type="submit" className="btn btn-primary">
                 Update Email
+              </button>
+            </form>
+          </div>
+
+          {/* Upload Photo Card */}
+          <div className="card">
+            <h2>Upload Photo</h2>
+            <form onSubmit={handleUploadPhoto}>
+              <div className="form-group">
+                <label htmlFor="photo">Profile Photo</label>
+                <input
+                  id="photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setPhotoFile(e.target.files[0])}
+                />
+              </div>
+              {photoMsg && <div className="success-message">{photoMsg}</div>}
+              {photoError && <div className="error-message">{photoError}</div>}
+              <button type="submit" className="btn btn-primary" disabled={!photoFile}>
+                Upload
               </button>
             </form>
           </div>

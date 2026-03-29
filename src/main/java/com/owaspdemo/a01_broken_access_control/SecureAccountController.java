@@ -12,15 +12,23 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/secure/accounts")
 @Tag(name = "A01 - Broken Access Control", description = "Ownership check via @PreAuthorize, SSN hidden")
 public class SecureAccountController {
+
+    private static final String UPLOAD_DIR = "uploads/photos";
 
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
@@ -55,6 +63,45 @@ public class SecureAccountController {
                     return ResponseEntity.ok(toSafeDto(user));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/{userId}/photo")
+    @PreAuthorize("@accountOwnership.isOwner(authentication, #userId)")
+    @Operation(summary = "Upload profile photo (path traversal safe)",
+            description = "GOOD: ignores user-supplied filename, generates a safe UUID-based name")
+    public ResponseEntity<?> uploadPhoto(
+            @Parameter(description = "User ID", example = "2") @PathVariable Long userId,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        // GOOD: Ignore the user-supplied filename entirely
+        // Generate a random filename to prevent path traversal
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
+        }
+
+        // Only allow image extensions
+        if (!List.of(".jpg", ".jpeg", ".png", ".gif").contains(extension.toLowerCase())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Only image files are allowed"));
+        }
+
+        String safeFilename = UUID.randomUUID() + extension;
+        Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
+        Files.createDirectories(uploadPath);
+
+        Path destination = uploadPath.resolve(safeFilename).normalize();
+
+        // GOOD: Verify the resolved path is still within the upload directory
+        if (!destination.startsWith(uploadPath)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid file path"));
+        }
+
+        file.transferTo(destination.toFile());
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Photo uploaded successfully",
+                "filename", safeFilename
+        ));
     }
 
     @GetMapping("/{userId}/tickets")
