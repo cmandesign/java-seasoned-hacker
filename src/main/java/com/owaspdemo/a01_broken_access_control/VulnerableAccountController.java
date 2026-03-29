@@ -76,12 +76,12 @@ public class VulnerableAccountController {
         if (originalFilename == null || originalFilename.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Filename is required"));
         }
-        Path uploadPath = Paths.get(UPLOAD_DIR);
+        Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath();
         Files.createDirectories(uploadPath);
 
         // BAD: directly concatenating user-controlled filename — classic path traversal
         Path destination = uploadPath.resolve(originalFilename);
-        file.transferTo(destination.toFile());
+        file.transferTo(destination);
 
         return ResponseEntity.ok(Map.of(
                 "message", "Photo uploaded successfully",

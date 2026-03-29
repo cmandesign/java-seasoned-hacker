@@ -96,7 +96,7 @@ public class SecureAccountController {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid file path"));
         }
 
-        file.transferTo(destination.toFile());
+        file.transferTo(destination);
 
         return ResponseEntity.ok(Map.of(
                 "message", "Photo uploaded successfully",
