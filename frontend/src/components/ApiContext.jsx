@@ -12,7 +12,7 @@ export const useApi = () => {
 };
 
 export const ApiProvider = ({ children }) => {
-  const [apiMode, setApiMode] = useState('secure');
+  const [apiMode, setApiMode] = useState('vulnerable');
 
   const apiConfigs = {
     secure: {

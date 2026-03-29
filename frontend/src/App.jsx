@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ApiProvider } from './components/ApiContext';
-import ApiSwitcher from './components/ApiSwitcher';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import UserSearch from './components/UserSearch';
@@ -67,7 +66,6 @@ function App() {
     <ApiProvider>
       <AuthProvider>
         <div className="app-container">
-          <ApiSwitcher />
           <AppRoutes />
         </div>
       </AuthProvider>
