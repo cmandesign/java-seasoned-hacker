@@ -1,23 +1,16 @@
 package com.owaspdemo.a07_authentication_failures;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * A07:2025 - Authentication Failures
- *
- * Vulnerable flow:
- *   1. POST /api/v1/vulnerable/auth/login  -> get JWT with weak secret
- *   2. GET  /api/v1/vulnerable/auth/me?token=...  -> access protected resource
- *   3. Attacker cracks the secret, forges a token with role=ADMIN
- *
- * Secure flow:
- *   1. POST /api/v1/secure/auth/login  -> get RSA-signed JWT (15-min expiry)
- *   2. GET  /api/v1/secure/auth/me?token=...  -> validates alg, issuer, audience, expiry
- *   3. Forged/tampered tokens are rejected
- */
 @RestController
+@Tag(name = "A07 - Authentication Failures", description = "Weak HMAC JWT vs RSA-2048 with issuer/audience/expiry")
 public class AuthController {
 
     private final VulnerableJwtUtil vulnerableJwt;
@@ -31,7 +24,11 @@ public class AuthController {
     // --- Vulnerable ---
 
     @PostMapping("/api/v1/vulnerable/auth/login")
-    public Map<String, String> vulnerableLogin(@RequestBody Map<String, String> body) {
+    @Operation(summary = "Login (weak HMAC JWT)", description = "Secret is 'secretsecretsecretsecretsecretsecret'. Forge a token with role=ADMIN at jwt.io")
+    public Map<String, String> vulnerableLogin(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = "{\"username\": \"alice\", \"role\": \"USER\"}")))
+            @RequestBody Map<String, String> body) {
         String username = body.getOrDefault("username", "guest");
         String role = body.getOrDefault("role", "USER");
         String token = vulnerableJwt.generateToken(username, role);
@@ -43,14 +40,20 @@ public class AuthController {
     }
 
     @GetMapping("/api/v1/vulnerable/auth/me")
-    public Map<String, Object> vulnerableMe(@RequestParam String token) {
+    @Operation(summary = "Get current user from JWT (no expiry, no issuer check)")
+    public Map<String, Object> vulnerableMe(
+            @Parameter(description = "JWT token from login") @RequestParam String token) {
         return vulnerableJwt.parseToken(token);
     }
 
     // --- Secure ---
 
     @PostMapping("/api/v1/secure/auth/login")
-    public Map<String, String> secureLogin(@RequestBody Map<String, String> body) {
+    @Operation(summary = "Login (RSA-256 JWT)", description = "15-min expiry, validates issuer + audience")
+    public Map<String, String> secureLogin(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = "{\"username\": \"alice\", \"role\": \"USER\"}")))
+            @RequestBody Map<String, String> body) {
         String username = body.getOrDefault("username", "guest");
         String role = body.getOrDefault("role", "USER");
         String token = secureJwt.generateToken(username, role);
@@ -61,7 +64,9 @@ public class AuthController {
     }
 
     @GetMapping("/api/v1/secure/auth/me")
-    public Map<String, Object> secureMe(@RequestParam String token) {
+    @Operation(summary = "Get current user from JWT (validates alg, issuer, audience, expiry)")
+    public Map<String, Object> secureMe(
+            @Parameter(description = "RSA-signed JWT from login") @RequestParam String token) {
         return secureJwt.parseToken(token);
     }
 }

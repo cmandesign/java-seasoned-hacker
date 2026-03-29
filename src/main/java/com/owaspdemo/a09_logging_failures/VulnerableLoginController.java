@@ -1,22 +1,18 @@
 package com.owaspdemo.a09_logging_failures;
 
 import com.owaspdemo.common.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * A09:2025 - Security Logging and Alerting Failures
- *
- * VULNERABLE: Login attempts are not logged at all.
- * Failed logins, brute-force attacks, and privilege escalations leave no trace.
- *
- * Try: POST /api/v1/vulnerable/login with wrong credentials 100 times
- * Check logs: nothing recorded — the attack is invisible.
- */
 @RestController
 @RequestMapping("/api/v1/vulnerable")
+@Tag(name = "A09 - Logging Failures", description = "Silent login vs structured audit logging with brute-force alerting")
 public class VulnerableLoginController {
 
     private final UserRepository userRepository;
@@ -28,7 +24,11 @@ public class VulnerableLoginController {
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> body) {
+    @Operation(summary = "Login (no audit logging)", description = "Failed attempts leave no trace — brute-force attacks invisible")
+    public Map<String, Object> login(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = "{\"username\": \"admin\", \"password\": \"wrong\"}")))
+            @RequestBody Map<String, String> body) {
         String username = body.get("username");
         String password = body.get("password");
 

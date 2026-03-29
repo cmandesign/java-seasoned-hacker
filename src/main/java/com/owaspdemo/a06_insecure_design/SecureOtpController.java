@@ -1,5 +1,8 @@
 package com.owaspdemo.a06_insecure_design;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -7,18 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * A06:2025 - Insecure Design
- *
- * SECURE: 6-digit OTP with rate limiting (5 attempts), 5-min expiry, lockout.
- *
- * Demo:
- *   1. POST /api/v1/secure/otp/generate             -> returns sessionId
- *   2. POST /api/v1/secure/otp/verify?sessionId=...  -> max 5 attempts then 429
- *   3. After lockout, session is invalidated
- */
 @RestController
 @RequestMapping("/api/v1/secure/otp")
+@Tag(name = "A06 - Insecure Design")
 public class SecureOtpController {
 
     private final OtpService otpService;
@@ -30,6 +24,7 @@ public class SecureOtpController {
     }
 
     @PostMapping("/generate")
+    @Operation(summary = "Generate 6-digit OTP (5-min expiry, max 5 attempts)")
     public Map<String, String> generate() {
         String sessionId = UUID.randomUUID().toString();
         String otp = otpService.generateStrong(sessionId);
@@ -41,7 +36,10 @@ public class SecureOtpController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<Map<String, Object>> verify(@RequestParam String sessionId, @RequestParam String otp) {
+    @Operation(summary = "Verify OTP (max 5 attempts then 429 lockout)")
+    public ResponseEntity<Map<String, Object>> verify(
+            @Parameter(description = "Session ID from generate", example = "550e8400-e29b-41d4-a716-446655440000") @RequestParam String sessionId,
+            @Parameter(description = "6-digit OTP guess", example = "000000") @RequestParam String otp) {
         // GOOD: Check rate limit before processing
         if (rateLimiter.isBlocked(sessionId)) {
             otpService.invalidate(sessionId);

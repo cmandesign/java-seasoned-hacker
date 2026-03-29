@@ -2,21 +2,16 @@ package com.owaspdemo.a05_injection;
 
 import com.owaspdemo.common.model.Product;
 import com.owaspdemo.common.repository.ProductRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * A05:2025 - Injection
- *
- * SECURE: Uses Spring Data JPA @Query with named parameters.
- * The same malicious input is treated as a literal string, not SQL.
- *
- * Try: GET /api/v1/secure/products?search=' OR '1'='1
- * Result: 0 products (the literal string doesn't match any name)
- */
 @RestController
 @RequestMapping("/api/v1/secure/products")
+@Tag(name = "A05 - Injection", description = "Parameterized queries + DTD-disabled XML parsing")
 public class SecureProductController {
 
     private final ProductRepository productRepository;
@@ -26,7 +21,9 @@ public class SecureProductController {
     }
 
     @GetMapping
-    public List<Product> search(@RequestParam(defaultValue = "") String search) {
+    @Operation(summary = "Search products (parameterized)", description = "Same payload treated as literal string — 0 results")
+    public List<Product> search(
+            @Parameter(description = "Search term", example = "MacBook") @RequestParam(defaultValue = "") String search) {
         // GOOD: Parameterized query — input is never part of SQL syntax
         return productRepository.searchByName(search);
     }

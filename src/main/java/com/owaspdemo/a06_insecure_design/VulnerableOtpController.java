@@ -1,23 +1,16 @@
 package com.owaspdemo.a06_insecure_design;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * A06:2025 - Insecure Design
- *
- * VULNERABLE: 4-digit OTP with no rate limiting, no expiry, no lockout.
- * An attacker can brute-force all 10,000 combinations in seconds.
- *
- * Demo:
- *   1. POST /api/v1/vulnerable/otp/generate          -> returns sessionId (OTP sent "via SMS")
- *   2. POST /api/v1/vulnerable/otp/verify?sessionId=...&otp=0000  -> try all 0000-9999
- *   3. No lockout, no rate limit — eventually succeeds
- */
 @RestController
 @RequestMapping("/api/v1/vulnerable/otp")
+@Tag(name = "A06 - Insecure Design", description = "4-digit OTP with no rate limit vs 6-digit with lockout")
 public class VulnerableOtpController {
 
     private final OtpService otpService;
@@ -27,6 +20,7 @@ public class VulnerableOtpController {
     }
 
     @PostMapping("/generate")
+    @Operation(summary = "Generate 4-digit OTP (no rate limit, no expiry)")
     public Map<String, String> generate() {
         String sessionId = UUID.randomUUID().toString();
         String otp = otpService.generateWeak(sessionId);
@@ -38,7 +32,10 @@ public class VulnerableOtpController {
     }
 
     @PostMapping("/verify")
-    public Map<String, Object> verify(@RequestParam String sessionId, @RequestParam String otp) {
+    @Operation(summary = "Verify OTP (unlimited attempts)")
+    public Map<String, Object> verify(
+            @Parameter(description = "Session ID from generate", example = "550e8400-e29b-41d4-a716-446655440000") @RequestParam String sessionId,
+            @Parameter(description = "4-digit OTP guess", example = "0000") @RequestParam String otp) {
         // BAD: No rate limiting, no attempt counter, no lockout
         boolean valid = otpService.verifyWeak(sessionId, otp);
         return Map.of("valid", valid);

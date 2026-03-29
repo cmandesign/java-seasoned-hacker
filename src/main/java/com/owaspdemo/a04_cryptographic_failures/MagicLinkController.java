@@ -1,24 +1,14 @@
 package com.owaspdemo.a04_cryptographic_failures;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * A04:2025 - Cryptographic Failures — Magic Link Demo
- *
- * Vulnerable flow:
- *   1. POST /api/v1/vulnerable/magic-link?email=alice@company.com  -> returns crackable token
- *   2. GET  /api/v1/vulnerable/magic-link/verify?token=...         -> authenticates
- *   3. Attacker cracks the JWT secret offline, forges tokens for any email
- *
- * Secure flow:
- *   1. POST /api/v1/secure/magic-link?email=alice@company.com      -> returns strong token
- *   2. GET  /api/v1/secure/magic-link/verify?token=...             -> authenticates (once only)
- *   3. Second use of same token -> rejected (single-use)
- *   4. After 5 min -> rejected (expired)
- */
 @RestController
+@Tag(name = "A04 - Cryptographic Failures", description = "Crackable magic link JWT vs strong 256-bit key with expiry")
 public class MagicLinkController {
 
     private final VulnerableMagicLinkService vulnerableService;
@@ -33,7 +23,9 @@ public class MagicLinkController {
     // --- Vulnerable endpoints ---
 
     @PostMapping("/api/v1/vulnerable/magic-link")
-    public Map<String, String> generateVulnerable(@RequestParam String email) {
+    @Operation(summary = "Generate crackable magic link", description = "JWT signed with weak secret 'password123'. Crack with: hashcat -m 16500")
+    public Map<String, String> generateVulnerable(
+            @Parameter(description = "User email", example = "alice@company.com") @RequestParam String email) {
         String token = vulnerableService.generateToken(email);
         return Map.of(
                 "token", token,
@@ -42,14 +34,18 @@ public class MagicLinkController {
     }
 
     @GetMapping("/api/v1/vulnerable/magic-link/verify")
-    public Map<String, Object> verifyVulnerable(@RequestParam String token) {
+    @Operation(summary = "Verify magic link (replayable, no expiry)")
+    public Map<String, Object> verifyVulnerable(
+            @Parameter(description = "Base64-encoded JWT token from generate endpoint") @RequestParam String token) {
         return vulnerableService.verifyToken(token);
     }
 
     // --- Secure endpoints ---
 
     @PostMapping("/api/v1/secure/magic-link")
-    public Map<String, String> generateSecure(@RequestParam String email) {
+    @Operation(summary = "Generate secure magic link", description = "256-bit random key, 5-min expiry, single-use")
+    public Map<String, String> generateSecure(
+            @Parameter(description = "User email", example = "alice@company.com") @RequestParam String email) {
         String token = secureService.generateToken(email);
         return Map.of(
                 "token", token,
@@ -58,7 +54,9 @@ public class MagicLinkController {
     }
 
     @GetMapping("/api/v1/secure/magic-link/verify")
-    public Map<String, Object> verifySecure(@RequestParam String token) {
+    @Operation(summary = "Verify magic link (single-use, 5-min expiry)")
+    public Map<String, Object> verifySecure(
+            @Parameter(description = "JWT token from generate endpoint") @RequestParam String token) {
         return secureService.verifyToken(token);
     }
 }

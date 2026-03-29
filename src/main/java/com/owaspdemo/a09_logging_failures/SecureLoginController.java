@@ -1,6 +1,10 @@
 package com.owaspdemo.a09_logging_failures;
 
 import com.owaspdemo.common.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -8,17 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * A09:2025 - Security Logging and Alerting Failures
- *
- * SECURE: Every login attempt is logged with structured context.
- * After 3 failed attempts from the same IP, an alert is triggered.
- *
- * Try: POST /api/v1/secure/login with wrong credentials 4 times
- * Check logs/security-audit.log: all attempts recorded, alert triggered after 3rd.
- */
 @RestController
 @RequestMapping("/api/v1/secure")
+@Tag(name = "A09 - Logging Failures")
 public class SecureLoginController {
 
     private final UserRepository userRepository;
@@ -33,7 +29,11 @@ public class SecureLoginController {
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
+    @Operation(summary = "Login (structured audit logging)", description = "Every attempt logged. Alert after 3 failures from same IP. Check logs/security-audit.log")
+    public Map<String, Object> login(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = "{\"username\": \"admin\", \"password\": \"wrong\"}")))
+            @RequestBody Map<String, String> body, HttpServletRequest request) {
         String username = body.get("username");
         String password = body.get("password");
         String clientIp = request.getRemoteAddr();

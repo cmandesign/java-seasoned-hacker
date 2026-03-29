@@ -2,6 +2,11 @@ package com.owaspdemo.a10_exceptional_conditions;
 
 import com.owaspdemo.common.model.Order;
 import com.owaspdemo.common.repository.OrderRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -13,17 +18,9 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * A10:2025 - Mishandling of Exceptional Conditions
- *
- * SECURE: Handles exceptions properly with transactional rollback,
- * specific exception types, and correlation IDs for debugging.
- *
- * Try: POST /api/v1/secure/payments with amount > 500
- * Result: HTTP 502, order stays "PENDING", correlation ID in response for support.
- */
 @RestController
 @RequestMapping("/api/v1/secure/payments")
+@Tag(name = "A10 - Exceptional Conditions")
 public class SecurePaymentController {
 
     private static final Logger log = LoggerFactory.getLogger(SecurePaymentController.class);
@@ -38,7 +35,11 @@ public class SecurePaymentController {
 
     @PostMapping
     @Transactional
-    public ResponseEntity<Map<String, Object>> processPayment(@RequestBody Map<String, Object> body) {
+    @Operation(summary = "Process payment (proper error handling)", description = "Amount > $500 → 502 + FAILED. Correlation ID for support. Under $500 → PAID.")
+    public ResponseEntity<Map<String, Object>> processPayment(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = "{\"userId\": 1, \"productId\": 1, \"amount\": 999.99}")))
+            @RequestBody Map<String, Object> body) {
         Long userId = Long.valueOf(body.get("userId").toString());
         Long productId = Long.valueOf(body.get("productId").toString());
         BigDecimal amount = new BigDecimal(body.get("amount").toString());
@@ -97,7 +98,9 @@ public class SecurePaymentController {
     }
 
     @GetMapping("/{orderId}")
-    public ResponseEntity<Map<String, Object>> getOrder(@PathVariable Long orderId) {
+    @Operation(summary = "Get order by ID")
+    public ResponseEntity<Map<String, Object>> getOrder(
+            @Parameter(description = "Order ID", example = "1") @PathVariable Long orderId) {
         return orderRepository.findById(orderId)
                 .map(o -> ResponseEntity.ok(Map.<String, Object>of(
                         "orderId", o.getId(),

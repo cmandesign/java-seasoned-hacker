@@ -1,25 +1,18 @@
 package com.owaspdemo.a08_integrity_failures;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * A08:2025 - Software and Data Integrity Failures
- *
- * SECURE: Verifies HMAC-SHA256 signature in X-Webhook-Signature header
- * before processing the webhook payload.
- *
- * Try: POST /api/v1/secure/webhook without valid signature -> 401
- * Try: POST /api/v1/secure/webhook with tampered body -> 401
- *
- * The shared secret is "webhook-secret-key" for demo purposes.
- */
 @RestController
 @RequestMapping("/api/v1/secure/webhook")
+@Tag(name = "A08 - Integrity Failures")
 public class SecureWebhookController {
 
     private final WebhookSignatureVerifier verifier = new WebhookSignatureVerifier("webhook-secret-key");
@@ -30,8 +23,10 @@ public class SecureWebhookController {
     }
 
     @PostMapping
+    @Operation(summary = "Receive webhook (HMAC-SHA256 verified)", description = "Requires X-Webhook-Signature header. Use /sign endpoint to generate.")
     public ResponseEntity<Map<String, Object>> handleWebhook(
             @RequestBody String rawBody,
+            @Parameter(description = "HMAC-SHA256 signature (sha256=hex)", example = "sha256=abc123")
             @RequestHeader(value = "X-Webhook-Signature", required = false) String signature) {
 
         // GOOD: Reject if no signature provided
@@ -59,8 +54,8 @@ public class SecureWebhookController {
         }
     }
 
-    /** Helper endpoint to generate a valid signature for testing */
     @PostMapping("/sign")
+    @Operation(summary = "Generate HMAC signature for testing", description = "Returns sha256=hex signature for the given payload")
     public Map<String, String> sign(@RequestBody String payload) {
         return Map.of("signature", verifier.computeSignature(payload));
     }

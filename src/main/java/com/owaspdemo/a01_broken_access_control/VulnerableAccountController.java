@@ -2,22 +2,20 @@ package com.owaspdemo.a01_broken_access_control;
 
 import com.owaspdemo.common.model.AppUser;
 import com.owaspdemo.common.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-/**
- * A01:2025 - Broken Access Control
- *
- * VULNERABLE: Any caller can access any user's profile by changing the ID.
- * No authentication required, no ownership check.
- *
- * Try: GET /api/v1/vulnerable/accounts/1  (admin's profile with SSN!)
- * Try: GET /api/v1/vulnerable/accounts/2  (alice's profile)
- */
 @RestController
 @RequestMapping("/api/v1/vulnerable/accounts")
+@Tag(name = "A01 - Broken Access Control", description = "IDOR — no auth, no ownership check")
 public class VulnerableAccountController {
 
     private final UserRepository userRepository;
@@ -27,7 +25,9 @@ public class VulnerableAccountController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getAccount(@PathVariable Long userId) {
+    @Operation(summary = "Get any user profile (no auth)", description = "IDOR: change userId to access any account, SSN included")
+    public ResponseEntity<?> getAccount(
+            @Parameter(description = "User ID", example = "1") @PathVariable Long userId) {
         // BAD: No authentication, no authorization check — classic IDOR
         return userRepository.findById(userId)
                 .map(user -> ResponseEntity.ok(toDto(user)))
@@ -35,7 +35,12 @@ public class VulnerableAccountController {
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<?> updateEmail(@PathVariable Long userId, @RequestBody Map<String, String> body) {
+    @Operation(summary = "Update any user's email (no auth)")
+    public ResponseEntity<?> updateEmail(
+            @Parameter(description = "User ID", example = "2") @PathVariable Long userId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = "{\"email\": \"hacked@evil.com\"}")))
+            @RequestBody Map<String, String> body) {
         // BAD: Any user can change any other user's email
         return userRepository.findById(userId)
                 .map(user -> {

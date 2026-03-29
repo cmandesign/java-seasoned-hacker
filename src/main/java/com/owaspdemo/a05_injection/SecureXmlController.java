@@ -1,5 +1,9 @@
 package com.owaspdemo.a05_injection;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.w3c.dom.Document;
@@ -11,18 +15,18 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A05:2025 - Injection (XXE variant)
- *
- * SECURE: Disables DTDs, external entities, and external parameter entities.
- * Same XML payload with XXE will be rejected with a parse error.
- */
 @RestController
 @RequestMapping("/api/v1/secure/products")
+@Tag(name = "A05 - Injection")
 public class SecureXmlController {
 
     @PostMapping(value = "/import", consumes = MediaType.APPLICATION_XML_VALUE)
-    public List<String> importProducts(@RequestBody String xml) throws Exception {
+    @Operation(summary = "Import products via XML (XXE blocked)", description = "DTDs and external entities disabled")
+    public List<String> importProducts(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(mediaType = "application/xml",
+                            examples = @ExampleObject(value = "<products><product><name>Widget</name></product></products>")))
+            @RequestBody String xml) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 
         // GOOD: Disable all dangerous XML features
