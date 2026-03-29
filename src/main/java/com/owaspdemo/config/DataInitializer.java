@@ -33,10 +33,10 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         userRepository.saveAll(List.of(
-            new AppUser("admin", passwordEncoder.encode("Admin123!"), "admin@company.com", "123-45-6789", Role.ADMIN),
-            new AppUser("alice", passwordEncoder.encode("Alice123!"), "alice@company.com", "987-65-4321", Role.USER),
-            new AppUser("bob",   passwordEncoder.encode("Bob12345!"), "bob@company.com",   "555-12-3456", Role.USER),
-            new AppUser("manager", passwordEncoder.encode("Mgr12345!"), "manager@company.com", "111-22-3333", Role.MANAGER)
+            new AppUser("admin", passwordEncoder.encode("Admin123!"), "admin@company.com", "123-45-6789", Role.ADMIN, "System", "Admin", "+1-555-100-0001"),
+            new AppUser("alice", passwordEncoder.encode("Alice123!"), "alice@company.com", "987-65-4321", Role.USER, "Alice", "Johnson", "+1-555-100-0002"),
+            new AppUser("bob",   passwordEncoder.encode("Bob12345!"), "bob@company.com",   "555-12-3456", Role.USER, "Bob", "Smith", "+1-555-100-0003"),
+            new AppUser("manager", passwordEncoder.encode("Mgr12345!"), "manager@company.com", "111-22-3333", Role.MANAGER, "Mark", "Thompson", "+1-555-100-0004")
         ));
 
         productRepository.saveAll(List.of(

@@ -25,16 +25,26 @@ public class AppUser {
     @Column(nullable = false)
     private Role role;
 
+    private String firstName;
+
+    private String lastName;
+
+    private String phoneNumber;
+
     private boolean enabled = true;
 
     public AppUser() {}
 
-    public AppUser(String username, String passwordHash, String email, String ssn, Role role) {
+    public AppUser(String username, String passwordHash, String email, String ssn, Role role,
+                   String firstName, String lastName, String phoneNumber) {
         this.username = username;
         this.passwordHash = passwordHash;
         this.email = email;
         this.ssn = ssn;
         this.role = role;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phoneNumber = phoneNumber;
     }
 
     public Long getId() { return id; }
@@ -49,6 +59,12 @@ public class AppUser {
     public void setSsn(String ssn) { this.ssn = ssn; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+    public String getFirstName() { return firstName; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public String getLastName() { return lastName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
 }

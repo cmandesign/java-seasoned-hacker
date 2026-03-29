@@ -48,9 +48,11 @@ public class AuthController {
                     .body(Map.of("error", "Invalid credentials"));
         }
 
-        String role = user.get().getRole().name();
-        Long userId = user.get().getId();
-        String token = vulnerableJwt.generateToken(username, role, userId);
+        var appUser = user.get();
+        String role = appUser.getRole().name();
+        Long userId = appUser.getId();
+        String token = vulnerableJwt.generateToken(username, role, userId,
+                appUser.getFirstName(), appUser.getLastName(), appUser.getPhoneNumber());
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "hint", "Secret is 'secretsecretsecretsecretsecretsecret'. " +
@@ -82,9 +84,11 @@ public class AuthController {
                     .body(Map.of("error", "Invalid credentials"));
         }
 
-        String role = user.get().getRole().name();
-        Long userId = user.get().getId();
-        String token = secureJwt.generateToken(username, role, userId);
+        var appUser = user.get();
+        String role = appUser.getRole().name();
+        Long userId = appUser.getId();
+        String token = secureJwt.generateToken(username, role, userId,
+                appUser.getFirstName(), appUser.getLastName(), appUser.getPhoneNumber());
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "note", "RSA-256 signed. 15-min expiry. Tamper and it will be rejected."
