@@ -24,11 +24,15 @@ public class VulnerableJwtUtil {
     private static final SecretKey KEY = Keys.hmacShaKeyFor(
             "simple_plansimple_plansimple_plan".getBytes(StandardCharsets.UTF_8));
 
-    public String generateToken(String username, String role, Long userId) {
+    public String generateToken(String username, String role, Long userId,
+                               String firstName, String lastName, String phoneNumber) {
         return Jwts.builder()
                 .subject(username)
                 .claim("role", role)
                 .claim("userId", userId)
+                .claim("firstName", firstName)
+                .claim("lastName", lastName)
+                .claim("phoneNumber", phoneNumber)
                 // BAD: no expiration
                 .signWith(KEY)
                 .compact();
@@ -45,7 +49,10 @@ public class VulnerableJwtUtil {
         return Map.of(
                 "username", claims.getSubject(),
                 "role", claims.get("role", String.class),
-                "userId", claims.get("userId", Long.class)
+                "userId", claims.get("userId", Long.class),
+                "firstName", claims.get("firstName", String.class),
+                "lastName", claims.get("lastName", String.class),
+                "phoneNumber", claims.get("phoneNumber", String.class)
         );
     }
 }

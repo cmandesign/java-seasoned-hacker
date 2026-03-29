@@ -27,11 +27,15 @@ public class SecureJwtUtil {
     // GOOD: RSA-2048 key pair generated at startup
     private final KeyPair keyPair = Jwts.SIG.RS256.keyPair().build();
 
-    public String generateToken(String username, String role, Long userId) {
+    public String generateToken(String username, String role, Long userId,
+                               String firstName, String lastName, String phoneNumber) {
         return Jwts.builder()
                 .subject(username)
                 .claim("role", role)
                 .claim("userId", userId)
+                .claim("firstName", firstName)
+                .claim("lastName", lastName)
+                .claim("phoneNumber", phoneNumber)
                 .issuer(ISSUER)
                 .audience().add(AUDIENCE).and()
                 .issuedAt(Date.from(Instant.now()))
@@ -54,6 +58,9 @@ public class SecureJwtUtil {
                     "username", claims.getSubject(),
                     "role", claims.get("role", String.class),
                     "userId", claims.get("userId", Long.class),
+                    "firstName", claims.get("firstName", String.class),
+                    "lastName", claims.get("lastName", String.class),
+                    "phoneNumber", claims.get("phoneNumber", String.class),
                     "expires", claims.getExpiration().toString()
             );
         } catch (JwtException e) {

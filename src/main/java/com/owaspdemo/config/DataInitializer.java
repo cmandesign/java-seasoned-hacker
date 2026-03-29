@@ -1,9 +1,11 @@
 package com.owaspdemo.config;
 
 import com.owaspdemo.common.model.AppUser;
+import com.owaspdemo.common.model.Feedback;
 import com.owaspdemo.common.model.Product;
 import com.owaspdemo.common.model.Role;
 import com.owaspdemo.common.model.Ticket;
+import com.owaspdemo.common.repository.FeedbackRepository;
 import com.owaspdemo.common.repository.ProductRepository;
 import com.owaspdemo.common.repository.TicketRepository;
 import com.owaspdemo.common.repository.UserRepository;
@@ -20,23 +22,26 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final TicketRepository ticketRepository;
+    private final FeedbackRepository feedbackRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataInitializer(UserRepository userRepository, ProductRepository productRepository,
-                           TicketRepository ticketRepository, PasswordEncoder passwordEncoder) {
+                           TicketRepository ticketRepository, FeedbackRepository feedbackRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.ticketRepository = ticketRepository;
+        this.feedbackRepository = feedbackRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) {
         userRepository.saveAll(List.of(
-            new AppUser("admin", passwordEncoder.encode("Admin123!"), "admin@company.com", "123-45-6789", Role.ADMIN),
-            new AppUser("alice", passwordEncoder.encode("Alice123!"), "alice@company.com", "987-65-4321", Role.USER),
-            new AppUser("bob",   passwordEncoder.encode("Bob12345!"), "bob@company.com",   "555-12-3456", Role.USER),
-            new AppUser("manager", passwordEncoder.encode("Mgr12345!"), "manager@company.com", "111-22-3333", Role.MANAGER)
+            new AppUser("admin", passwordEncoder.encode("Admin123!"), "admin@company.com", "123-45-6789", Role.ADMIN, "System", "Admin", "+1-555-100-0001"),
+            new AppUser("alice", passwordEncoder.encode("Alice123!"), "alice@company.com", "987-65-4321", Role.USER, "Alice", "Johnson", "+1-555-100-0002"),
+            new AppUser("bob",   passwordEncoder.encode("Bob12345!"), "bob@company.com",   "555-12-3456", Role.USER, "Bob", "Smith", "+1-555-100-0003"),
+            new AppUser("manager", passwordEncoder.encode("Mgr12345!"), "manager@company.com", "111-22-3333", Role.MANAGER, "Mark", "Thompson", "+1-555-100-0004")
         ));
 
         productRepository.saveAll(List.of(
@@ -58,6 +63,13 @@ public class DataInitializer implements CommandLineRunner {
                     "[\"Alice Johnson\"]"),
             new Ticket(3L, "DevOps Days", 2, new BigDecimal("99.00"),
                     "[\"Bob Smith\",\"Eve Martinez\"]")
+        ));
+
+        // Seed sample feedback — includes an XSS payload for demo
+        feedbackRepository.saveAll(List.of(
+            new Feedback("alice", "Love this platform! Very easy to use."),
+            new Feedback("bob", "Could you add dark mode? That would be great."),
+            new Feedback("bob", "<img src=x onerror=\"alert('XSS from feedback!')\"> Nice site!")
         ));
     }
 }

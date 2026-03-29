@@ -16,11 +16,18 @@ const Dashboard = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoMsg, setPhotoMsg] = useState('');
   const [photoError, setPhotoError] = useState('');
+  const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [feedbackSuccess, setFeedbackSuccess] = useState('');
+  const [feedbackError, setFeedbackError] = useState('');
+  const [feedbackList, setFeedbackList] = useState([]);
 
   useEffect(() => {
     if (user && (apiMode === 'secure' || user.userId)) {
       fetchProfile();
       fetchTickets();
+      if (isAdmin()) {
+        fetchFeedback();
+      }
     }
   }, [apiMode, user]);
 
@@ -83,6 +90,34 @@ const Dashboard = () => {
       setPhotoFile(null);
     } catch (err) {
       setPhotoError(err.response?.data?.error || 'Failed to upload photo');
+    }
+  };
+
+  const handleSubmitFeedback = async (e) => {
+    e.preventDefault();
+    setFeedbackSuccess('');
+    setFeedbackError('');
+    try {
+      const url = `/api/v1/${apiMode}/feedback`;
+      const payload = apiMode === 'vulnerable'
+        ? { username: user?.username, message: feedbackMsg }
+        : { message: feedbackMsg };
+      await axios.post(url, payload);
+      setFeedbackSuccess('Feedback submitted successfully!');
+      setFeedbackMsg('');
+      if (isAdmin()) fetchFeedback();
+    } catch (err) {
+      setFeedbackError(err.response?.data?.error || 'Failed to submit feedback');
+    }
+  };
+
+  const fetchFeedback = async () => {
+    try {
+      const url = `/api/v1/${apiMode}/feedback`;
+      const response = await axios.get(url);
+      setFeedbackList(response.data);
+    } catch (err) {
+      console.error('Feedback fetch error:', err);
     }
   };
 
@@ -194,6 +229,38 @@ const Dashboard = () => {
             </div>
           )}
 
+          {/* Submit Feedback */}
+          <div className="card">
+            <h2>Submit Feedback</h2>
+            <form onSubmit={handleSubmitFeedback}>
+              <div className="form-group">
+                <label htmlFor="feedback">Your Message</label>
+                <textarea
+                  id="feedback"
+                  value={feedbackMsg}
+                  onChange={(e) => setFeedbackMsg(e.target.value)}
+                  required
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '2px solid #e9ecef',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                  placeholder="Share your feedback..."
+                />
+              </div>
+              {feedbackSuccess && <div className="success-message">{feedbackSuccess}</div>}
+              {feedbackError && <div className="error-message">{feedbackError}</div>}
+              <button type="submit" className="btn btn-primary" disabled={!feedbackMsg.trim()}>
+                Send Feedback
+              </button>
+            </form>
+          </div>
+
           {/* Quick Actions */}
           <div className="card">
             <h2>Quick Actions</h2>
@@ -252,6 +319,45 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+        {/* Admin: View Feedback */}
+        {isAdmin() && (
+          <div style={{ marginTop: '1.5rem' }}>
+            <div className="card">
+              <h2>User Feedback {apiMode === 'vulnerable' && <span style={{ color: '#e53e3e', fontSize: '0.8rem' }}>(XSS vulnerable)</span>}</h2>
+              <button onClick={fetchFeedback} className="btn btn-info" style={{ marginBottom: '1rem' }}>
+                Refresh Feedback
+              </button>
+              {feedbackList.length === 0 ? (
+                <p className="text-muted">No feedback submitted yet.</p>
+              ) : (
+                <div className="flex-column">
+                  {feedbackList.map((fb) => (
+                    <div key={fb.id} style={{
+                      border: '1px solid #e9ecef',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                      background: '#f8f9fa'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <strong>{fb.username}</strong>
+                        <span style={{ color: '#718096', fontSize: '0.85rem' }}>
+                          {new Date(fb.submittedAt).toLocaleString()}
+                        </span>
+                      </div>
+                      {apiMode === 'vulnerable' ? (
+                        // BAD: Renders raw HTML — XSS payloads will execute!
+                        <div dangerouslySetInnerHTML={{ __html: fb.message }} />
+                      ) : (
+                        // GOOD: React safely escapes text content
+                        <p style={{ margin: 0 }}>{fb.message}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
