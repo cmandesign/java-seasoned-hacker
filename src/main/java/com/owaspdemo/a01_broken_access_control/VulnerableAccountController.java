@@ -1,6 +1,8 @@
 package com.owaspdemo.a01_broken_access_control;
 
 import com.owaspdemo.common.model.AppUser;
+import com.owaspdemo.common.model.Ticket;
+import com.owaspdemo.common.repository.TicketRepository;
 import com.owaspdemo.common.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,6 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -19,9 +23,11 @@ import java.util.Map;
 public class VulnerableAccountController {
 
     private final UserRepository userRepository;
+    private final TicketRepository ticketRepository;
 
-    public VulnerableAccountController(UserRepository userRepository) {
+    public VulnerableAccountController(UserRepository userRepository, TicketRepository ticketRepository) {
         this.userRepository = userRepository;
+        this.ticketRepository = ticketRepository;
     }
 
     @GetMapping("/{userId}")
@@ -49,6 +55,25 @@ public class VulnerableAccountController {
                     return ResponseEntity.ok(toDto(user));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{userId}/tickets")
+    @Operation(summary = "Get any user's tickets (no auth)", description = "IDOR: no ownership check on tickets")
+    public ResponseEntity<?> getTickets(
+            @Parameter(description = "User ID", example = "2") @PathVariable Long userId) {
+        // BAD: No authentication, no authorization check
+        List<Ticket> tickets = ticketRepository.findByUserId(userId);
+        List<Map<String, Object>> result = tickets.stream().map(t -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", t.getId());
+            map.put("eventName", t.getEventName());
+            map.put("quantity", t.getQuantity());
+            map.put("price", t.getPrice());
+            map.put("ticketHolders", t.getTicketHolders());
+            map.put("purchasedAt", t.getPurchasedAt());
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
     }
 
     private Map<String, Object> toDto(AppUser user) {
