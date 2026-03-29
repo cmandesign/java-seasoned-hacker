@@ -1,9 +1,11 @@
 package com.owaspdemo.config;
 
 import com.owaspdemo.common.model.AppUser;
+import com.owaspdemo.common.model.Feedback;
 import com.owaspdemo.common.model.Product;
 import com.owaspdemo.common.model.Role;
 import com.owaspdemo.common.model.Ticket;
+import com.owaspdemo.common.repository.FeedbackRepository;
 import com.owaspdemo.common.repository.ProductRepository;
 import com.owaspdemo.common.repository.TicketRepository;
 import com.owaspdemo.common.repository.UserRepository;
@@ -20,13 +22,16 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final TicketRepository ticketRepository;
+    private final FeedbackRepository feedbackRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataInitializer(UserRepository userRepository, ProductRepository productRepository,
-                           TicketRepository ticketRepository, PasswordEncoder passwordEncoder) {
+                           TicketRepository ticketRepository, FeedbackRepository feedbackRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.ticketRepository = ticketRepository;
+        this.feedbackRepository = feedbackRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -58,6 +63,13 @@ public class DataInitializer implements CommandLineRunner {
                     "[\"Alice Johnson\"]"),
             new Ticket(3L, "DevOps Days", 2, new BigDecimal("99.00"),
                     "[\"Bob Smith\",\"Eve Martinez\"]")
+        ));
+
+        // Seed sample feedback — includes an XSS payload for demo
+        feedbackRepository.saveAll(List.of(
+            new Feedback("alice", "Love this platform! Very easy to use."),
+            new Feedback("bob", "Could you add dark mode? That would be great."),
+            new Feedback("bob", "<img src=x onerror=\"alert('XSS from feedback!')\"> Nice site!")
         ));
     }
 }
