@@ -3,7 +3,9 @@ package com.owaspdemo.config;
 import com.owaspdemo.common.model.AppUser;
 import com.owaspdemo.common.model.Product;
 import com.owaspdemo.common.model.Role;
+import com.owaspdemo.common.model.Ticket;
 import com.owaspdemo.common.repository.ProductRepository;
+import com.owaspdemo.common.repository.TicketRepository;
 import com.owaspdemo.common.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,12 +19,14 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final TicketRepository ticketRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataInitializer(UserRepository userRepository, ProductRepository productRepository,
-                           PasswordEncoder passwordEncoder) {
+                           TicketRepository ticketRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.ticketRepository = ticketRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -44,6 +48,16 @@ public class DataInitializer implements CommandLineRunner {
             new Product("Logitech MX Master", "Wireless ergonomic mouse",     new BigDecimal("99.00")),
             new Product("AirPods Pro",        "Active noise cancellation",    new BigDecimal("249.00")),
             new Product("Standing Desk",      "Electric adjustable height",   new BigDecimal("699.00"))
+        ));
+
+        // Seed sample tickets — userId 2 = alice, userId 3 = bob
+        ticketRepository.saveAll(List.of(
+            new Ticket(2L, "Spring Conference 2026", 3, new BigDecimal("150.00"),
+                    "[\"Alice Johnson\",\"Charlie Brown\",\"Dana White\"]"),
+            new Ticket(2L, "Java Summit", 1, new BigDecimal("299.00"),
+                    "[\"Alice Johnson\"]"),
+            new Ticket(3L, "DevOps Days", 2, new BigDecimal("99.00"),
+                    "[\"Bob Smith\",\"Eve Martinez\"]")
         ));
     }
 }
