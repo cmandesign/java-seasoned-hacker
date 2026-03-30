@@ -2,10 +2,10 @@ spring:
   application:
     name: owasp-top10-demo
   datasource:
-    url: jdbc:postgresql://localhost:5432/owaspdb
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/owaspdb}
     driver-class-name: org.postgresql.Driver
-    username: owasp
-    password: owasp123
+    username: ${SPRING_DATASOURCE_USERNAME:owasp}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
