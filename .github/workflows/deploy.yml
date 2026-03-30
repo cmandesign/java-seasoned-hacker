@@ -6,35 +6,24 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
-
-      - name: Copy JAR to VM
+      - name: Copy files to VM
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USERNAME }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_PORT || 22 }}
-          source: "target/*.jar"
+          source: "Dockerfile,docker-compose.yml,pom.xml,src/"
           target: "/opt/owasp-demo/"
-          strip_components: 1
 
-      - name: Deploy on VM
+      - name: Deploy with docker-compose
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM_HOST }}
@@ -42,7 +31,8 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_PORT || 22 }}
           script: |
-            sudo systemctl stop owasp-demo || true
-            sudo cp /opt/owasp-demo/*.jar /opt/owasp-demo/app.jar
-            sudo systemctl start owasp-demo
-            sudo systemctl status owasp-demo
+            cd /opt/owasp-demo
+            docker compose down
+            docker compose build --no-cache
+            docker compose up -d
+            docker compose ps
