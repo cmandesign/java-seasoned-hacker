@@ -2,11 +2,12 @@ spring:
   application:
     name: owasp-top10-demo
   datasource:
-    url: jdbc:h2:mem:owaspdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:postgresql://localhost:5432/owaspdb
+    driver-class-name: org.postgresql.Driver
+    username: owasp
+    password: owasp123
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: create-drop
     show-sql: false

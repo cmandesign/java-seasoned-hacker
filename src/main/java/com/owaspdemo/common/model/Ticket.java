@@ -25,7 +25,7 @@ public class Ticket {
     private BigDecimal price;
 
     /** JSON array of ticket holder names, e.g. ["Alice Smith","Bob Jones"] */
-    @Column(columnDefinition = "CLOB")
+    @Column(columnDefinition = "TEXT")
     private String ticketHolders;
 
     @Column(nullable = false)
