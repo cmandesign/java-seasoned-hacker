@@ -16,12 +16,12 @@ export const ApiProvider = ({ children }) => {
 
   const apiConfigs = {
     secure: {
-      baseURL: 'http://localhost:8080',
+      baseURL: '',
       label: 'Secure APIs',
       description: 'Production-ready endpoints with security'
     },
     vulnerable: {
-      baseURL: 'http://localhost:8080',
+      baseURL: '',
       label: 'Vulnerable APIs',
       description: 'Intentionally vulnerable endpoints for testing'
     }
