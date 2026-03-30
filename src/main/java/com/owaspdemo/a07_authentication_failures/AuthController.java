@@ -1,6 +1,7 @@
 package com.owaspdemo.a07_authentication_failures;
 
 import com.owaspdemo.common.repository.UserRepository;
+import com.owaspdemo.config.RedisLoginCacheService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,13 +23,16 @@ public class AuthController {
     private final SecureJwtUtil secureJwt;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RedisLoginCacheService redisLoginCacheService;
 
     public AuthController(VulnerableJwtUtil vulnerableJwt, SecureJwtUtil secureJwt,
-                          UserRepository userRepository, PasswordEncoder passwordEncoder) {
+                          UserRepository userRepository, PasswordEncoder passwordEncoder,
+                          RedisLoginCacheService redisLoginCacheService) {
         this.vulnerableJwt = vulnerableJwt;
         this.secureJwt = secureJwt;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.redisLoginCacheService = redisLoginCacheService;
     }
 
     // --- Vulnerable ---
@@ -53,6 +57,7 @@ public class AuthController {
         Long userId = appUser.getId();
         String token = vulnerableJwt.generateToken(username, role, userId,
                 appUser.getFirstName(), appUser.getLastName(), appUser.getPhoneNumber());
+        redisLoginCacheService.cacheLoginToken(username, token);
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "hint", "Secret is 'secretsecretsecretsecretsecretsecret'. " +
@@ -89,6 +94,7 @@ public class AuthController {
         Long userId = appUser.getId();
         String token = secureJwt.generateToken(username, role, userId,
                 appUser.getFirstName(), appUser.getLastName(), appUser.getPhoneNumber());
+        redisLoginCacheService.cacheLoginToken(username, token);
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "note", "RSA-256 signed. 15-min expiry. Tamper and it will be rejected."

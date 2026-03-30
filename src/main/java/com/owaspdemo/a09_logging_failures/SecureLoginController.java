@@ -1,6 +1,7 @@
 package com.owaspdemo.a09_logging_failures;
 
 import com.owaspdemo.common.repository.UserRepository;
+import com.owaspdemo.config.RedisLoginCacheService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -11,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/secure")
@@ -20,12 +22,15 @@ public class SecureLoginController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
+    private final RedisLoginCacheService redisLoginCacheService;
 
     public SecureLoginController(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                                 ApplicationEventPublisher eventPublisher) {
+                                 ApplicationEventPublisher eventPublisher,
+                                 RedisLoginCacheService redisLoginCacheService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.eventPublisher = eventPublisher;
+        this.redisLoginCacheService = redisLoginCacheService;
     }
 
     @PostMapping("/login")
@@ -46,7 +51,10 @@ public class SecureLoginController {
                     this, SecurityAuditEvent.Action.LOGIN_SUCCESS,
                     username, clientIp, "Successful login"));
 
-            return Map.of("authenticated", true, "username", username);
+            String sessionToken = UUID.randomUUID().toString();
+            redisLoginCacheService.cacheLoginToken(username, sessionToken);
+
+            return Map.of("authenticated", true, "username", username, "token", sessionToken);
         }
 
         // GOOD: Log failed attempt — enables brute-force detection

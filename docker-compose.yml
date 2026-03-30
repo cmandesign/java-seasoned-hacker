@@ -1,6 +1,21 @@
 version: "3.9"
 
+networks:
+  owasp-net:
+    driver: bridge
+
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: owasp-demo-redis
+    networks:
+      - owasp-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   postgres:
     image: postgres:16-alpine
     container_name: owasp-demo-postgres
@@ -12,6 +27,8 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - owasp-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U owasp -d owaspdb"]
       interval: 5s
@@ -27,9 +44,15 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-owaspdb}
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-owasp}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - owasp-net
     restart: unless-stopped
 
   frontend:
@@ -39,6 +62,8 @@ services:
       - "3000:80"
     depends_on:
       - app
+    networks:
+      - owasp-net
     restart: unless-stopped
 
 volumes:
