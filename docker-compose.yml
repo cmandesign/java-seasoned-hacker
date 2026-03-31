@@ -46,6 +46,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+    volumes:
+      - applogs:/app/myapp
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,8 +109,10 @@ services:
     container_name: owasp-demo-filebeat
     user: root
     volumes:
-      - ./myapp:/var/log/myapp:ro
+      - applogs:/var/log/myapp:ro
     depends_on:
+      app:
+        condition: service_started
       elasticsearch:
         condition: service_healthy
     networks:
@@ -128,3 +132,4 @@ services:
 
 volumes:
   pgdata:
+  applogs:
