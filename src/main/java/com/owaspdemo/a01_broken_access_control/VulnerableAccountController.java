@@ -4,12 +4,14 @@ import com.owaspdemo.common.model.AppUser;
 import com.owaspdemo.common.model.Ticket;
 import com.owaspdemo.common.repository.TicketRepository;
 import com.owaspdemo.common.repository.UserRepository;
+import com.owaspdemo.config.ActivityLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,17 +33,23 @@ public class VulnerableAccountController {
 
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
+    private final ActivityLogService activityLog;
 
-    public VulnerableAccountController(UserRepository userRepository, TicketRepository ticketRepository) {
+    public VulnerableAccountController(UserRepository userRepository, TicketRepository ticketRepository,
+                                       ActivityLogService activityLog) {
         this.userRepository = userRepository;
         this.ticketRepository = ticketRepository;
+        this.activityLog = activityLog;
     }
 
     @GetMapping("/{userId}")
     @Operation(summary = "Get any user profile (no auth)", description = "IDOR: change userId to access any account, SSN included")
     public ResponseEntity<?> getAccount(
-            @Parameter(description = "User ID", example = "1") @PathVariable Long userId) {
+            @Parameter(description = "User ID", example = "1") @PathVariable Long userId,
+            HttpServletRequest request) {
         // BAD: No authentication, no authorization check — classic IDOR
+        activityLog.log("USER_SEARCH", "anonymous", request.getRemoteAddr(),
+                "Unauthenticated user profile lookup for userId=" + userId);
         return userRepository.findById(userId)
                 .map(user -> ResponseEntity.ok(toDto(user)))
                 .orElse(ResponseEntity.notFound().build());
