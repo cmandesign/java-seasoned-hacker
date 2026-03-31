@@ -1,0 +1,19 @@
+name: Brute Force Login
+type: frequency
+index: java-security-logs-*
+
+num_events: 2
+timeframe:
+  minutes: 100
+
+filter:
+  - term:
+      event.type: "LOGIN_FAILED"
+
+query_key: user.name
+
+alert:
+  - slack
+slack_webhook_url: "${SLACK_WEBHOOK_URL}"  # Set via environment variable
+alert_text: "Brute force detected for user: {0} from IP: {1}"
+alert_text_args: ["user.name", "source.ip"]

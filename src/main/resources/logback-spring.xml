@@ -14,9 +14,34 @@
         </encoder>
     </appender>
 
+    <!-- JSON activity log for filebeat/ELK ingestion -->
+    <appender name="ACTIVITY_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>myapp/activity.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>myapp/activity-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <fieldName>@timestamp</fieldName>
+                </timestamp>
+                <mdc/>
+                <message>
+                    <fieldName>message</fieldName>
+                </message>
+            </providers>
+        </encoder>
+    </appender>
+
     <logger name="com.owaspdemo.a09_logging_failures.secure" level="INFO" additivity="false">
         <appender-ref ref="SECURITY_AUDIT"/>
         <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <logger name="activity.log" level="INFO" additivity="false">
+        <appender-ref ref="ACTIVITY_JSON"/>
     </logger>
 
     <root level="INFO">

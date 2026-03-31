@@ -1,0 +1,13 @@
+filebeat.inputs:
+  - type: log
+    paths: ["/var/log/myapp/*.log"]
+    json.keys_under_root: true
+
+setup.template.name: "java-security-logs"
+setup.template.pattern: "java-security-logs-*"
+
+setup.ilm.enabled: false
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "java-security-logs-%{+yyyy.MM.dd}"

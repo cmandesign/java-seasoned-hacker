@@ -1,6 +1,7 @@
 package com.owaspdemo.a09_logging_failures;
 
 import com.owaspdemo.common.repository.UserRepository;
+import com.owaspdemo.config.ActivityLogService;
 import com.owaspdemo.config.RedisLoginCacheService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -23,14 +24,17 @@ public class SecureLoginController {
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher eventPublisher;
     private final RedisLoginCacheService redisLoginCacheService;
+    private final ActivityLogService activityLog;
 
     public SecureLoginController(UserRepository userRepository, PasswordEncoder passwordEncoder,
                                  ApplicationEventPublisher eventPublisher,
-                                 RedisLoginCacheService redisLoginCacheService) {
+                                 RedisLoginCacheService redisLoginCacheService,
+                                 ActivityLogService activityLog) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.eventPublisher = eventPublisher;
         this.redisLoginCacheService = redisLoginCacheService;
+        this.activityLog = activityLog;
     }
 
     @PostMapping("/login")
@@ -51,6 +55,8 @@ public class SecureLoginController {
                     this, SecurityAuditEvent.Action.LOGIN_SUCCESS,
                     username, clientIp, "Successful login"));
 
+            activityLog.log("LOGIN_SUCCESS", username, clientIp, "Successful login");
+
             String sessionToken = UUID.randomUUID().toString();
             redisLoginCacheService.cacheLoginToken(username, sessionToken);
 
@@ -62,6 +68,9 @@ public class SecureLoginController {
                 this, SecurityAuditEvent.Action.LOGIN_FAILURE,
                 username != null ? username : "unknown", clientIp,
                 "Failed login attempt — invalid credentials"));
+
+        activityLog.log("LOGIN_FAILED", username != null ? username : "unknown", clientIp,
+                "Failed login attempt — invalid credentials");
 
         return Map.of("authenticated", false);
     }

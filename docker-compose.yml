@@ -66,5 +66,64 @@ services:
       - owasp-net
     restart: unless-stopped
 
+  # --- ELK Stack for activity log monitoring ---
+
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    container_name: owasp-demo-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    networks:
+      - owasp-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  kibana:
+    image: kibana:8.12.0
+    container_name: owasp-demo-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a7f3c9b2e1d4f6a8c0b2d4f6a8c0b2d4
+      - XPACK_REPORTING_ENCRYPTIONKEY=b8d4f6a2c0e4f8b2d4f6a8c0b2d4f6a8
+      - XPACK_SECURITY_ENCRYPTIONKEY=c0b2d4f6a8e0b2d4f6a8c0b2d4f6a8c0
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - owasp-net
+
+  filebeat:
+    image: elastic/filebeat:8.12.0
+    container_name: owasp-demo-filebeat
+    user: root
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./myapp:/var/log/myapp:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - owasp-net
+
+  elastalert:
+    image: jertel/elastalert2:latest
+    container_name: owasp-demo-elastalert
+    volumes:
+      - ./elastalert/config.yaml:/opt/elastalert/config.yaml:ro
+      - ./elastalert/rules:/opt/elastalert/rules:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - owasp-net
+
 volumes:
   pgdata:

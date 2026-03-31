@@ -1,12 +1,14 @@
 package com.owaspdemo.a07_authentication_failures;
 
 import com.owaspdemo.common.repository.UserRepository;
+import com.owaspdemo.config.ActivityLogService;
 import com.owaspdemo.config.RedisLoginCacheService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,15 +26,18 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RedisLoginCacheService redisLoginCacheService;
+    private final ActivityLogService activityLog;
 
     public AuthController(VulnerableJwtUtil vulnerableJwt, SecureJwtUtil secureJwt,
                           UserRepository userRepository, PasswordEncoder passwordEncoder,
-                          RedisLoginCacheService redisLoginCacheService) {
+                          RedisLoginCacheService redisLoginCacheService,
+                          ActivityLogService activityLog) {
         this.vulnerableJwt = vulnerableJwt;
         this.secureJwt = secureJwt;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.redisLoginCacheService = redisLoginCacheService;
+        this.activityLog = activityLog;
     }
 
     // --- Vulnerable ---
@@ -42,12 +47,15 @@ public class AuthController {
     public ResponseEntity<?> vulnerableLogin(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(examples = @ExampleObject(value = "{\"username\": \"alice\", \"password\": \"Alice123!\"}")))
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body, HttpServletRequest request) {
         String username = body.get("username");
         String password = body.get("password");
+        String clientIp = request.getRemoteAddr();
 
         var user = userRepository.findByUsername(username);
         if (user.isEmpty() || !passwordEncoder.matches(password, user.get().getPasswordHash())) {
+            activityLog.log("LOGIN_FAILED", username != null ? username : "unknown", clientIp,
+                    "Failed login attempt — invalid credentials (vulnerable JWT endpoint)");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid credentials"));
         }
@@ -58,6 +66,8 @@ public class AuthController {
         String token = vulnerableJwt.generateToken(username, role, userId,
                 appUser.getFirstName(), appUser.getLastName(), appUser.getPhoneNumber());
         redisLoginCacheService.cacheLoginToken(username, token);
+        activityLog.log("LOGIN_SUCCESS", username, clientIp,
+                "Successful login (vulnerable JWT endpoint)");
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "hint", "Secret is 'secretsecretsecretsecretsecretsecret'. " +
@@ -79,12 +89,15 @@ public class AuthController {
     public ResponseEntity<?> secureLogin(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(examples = @ExampleObject(value = "{\"username\": \"alice\", \"password\": \"Alice123!\"}")))
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body, HttpServletRequest request) {
         String username = body.get("username");
         String password = body.get("password");
+        String clientIp = request.getRemoteAddr();
 
         var user = userRepository.findByUsername(username);
         if (user.isEmpty() || !passwordEncoder.matches(password, user.get().getPasswordHash())) {
+            activityLog.log("LOGIN_FAILED", username != null ? username : "unknown", clientIp,
+                    "Failed login attempt — invalid credentials (secure JWT endpoint)");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid credentials"));
         }
@@ -95,6 +108,8 @@ public class AuthController {
         String token = secureJwt.generateToken(username, role, userId,
                 appUser.getFirstName(), appUser.getLastName(), appUser.getPhoneNumber());
         redisLoginCacheService.cacheLoginToken(username, token);
+        activityLog.log("LOGIN_SUCCESS", username, clientIp,
+                "Successful login (secure JWT endpoint)");
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "note", "RSA-256 signed. 15-min expiry. Tamper and it will be rejected."

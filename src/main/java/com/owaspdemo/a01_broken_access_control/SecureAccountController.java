@@ -4,13 +4,16 @@ import com.owaspdemo.common.model.AppUser;
 import com.owaspdemo.common.model.Ticket;
 import com.owaspdemo.common.repository.TicketRepository;
 import com.owaspdemo.common.repository.UserRepository;
+import com.owaspdemo.config.ActivityLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,17 +35,24 @@ public class SecureAccountController {
 
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
+    private final ActivityLogService activityLog;
 
-    public SecureAccountController(UserRepository userRepository, TicketRepository ticketRepository) {
+    public SecureAccountController(UserRepository userRepository, TicketRepository ticketRepository,
+                                   ActivityLogService activityLog) {
         this.userRepository = userRepository;
         this.ticketRepository = ticketRepository;
+        this.activityLog = activityLog;
     }
 
     @GetMapping("/{userId}")
     @PreAuthorize("@accountOwnership.isOwner(authentication, #userId)")
     @Operation(summary = "Get user profile (ownership enforced)", description = "Auth: JWT. alice can read id=2, admin can read any.")
     public ResponseEntity<?> getAccount(
-            @Parameter(description = "User ID", example = "2") @PathVariable Long userId) {
+            @Parameter(description = "User ID", example = "2") @PathVariable Long userId,
+            Authentication authentication, HttpServletRequest request) {
+        String requester = authentication != null ? authentication.getName() : "unknown";
+        activityLog.log("USER_SEARCH", requester, request.getRemoteAddr(),
+                "User profile lookup for userId=" + userId);
         return userRepository.findById(userId)
                 .map(user -> ResponseEntity.ok(toSafeDto(user)))
                 .orElse(ResponseEntity.notFound().build());
