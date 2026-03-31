@@ -101,11 +101,12 @@ services:
       - owasp-net
 
   filebeat:
-    image: elastic/filebeat:8.12.0
+    build:
+      context: .
+      dockerfile: filebeat.Dockerfile
     container_name: owasp-demo-filebeat
     user: root
     volumes:
-      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - ./myapp:/var/log/myapp:ro
     depends_on:
       elasticsearch:
