@@ -80,6 +80,7 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/secure/auth/login").permitAll()
+                .requestMatchers("/api/v1/secure/otp-login/**").permitAll()
                 .requestMatchers("/api/v1/secure/magic-link/verify").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
