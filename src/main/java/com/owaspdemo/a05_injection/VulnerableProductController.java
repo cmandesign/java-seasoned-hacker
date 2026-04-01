@@ -20,7 +20,6 @@ public class VulnerableProductController {
     }
 
     @GetMapping
-    @SuppressWarnings("unchecked")
     @Operation(summary = "Search products (SQL injectable)", description = "Try: ' OR '1'='1  or  ' UNION SELECT id,username,password_hash,email FROM app_user --  (PostgreSQL: ' UNION SELECT id,username,password_hash,CAST(email AS VARCHAR) FROM app_user --)")
     public List<?> search(
             @Parameter(description = "Search term", example = "' OR '1'='1") @RequestParam(defaultValue = "") String search) {
