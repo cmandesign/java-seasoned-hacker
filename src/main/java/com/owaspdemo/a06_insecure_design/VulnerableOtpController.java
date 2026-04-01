@@ -1,5 +1,8 @@
 package com.owaspdemo.a06_insecure_design;
 
+import com.owaspdemo.a07_authentication_failures.VulnerableJwtUtil;
+import com.owaspdemo.common.model.AppUser;
+import com.owaspdemo.common.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,9 +20,14 @@ import java.util.Map;
 public class VulnerableOtpController {
 
     private final OtpService otpService;
+    private final UserRepository userRepository;
+    private final VulnerableJwtUtil vulnerableJwtUtil;
 
-    public VulnerableOtpController(OtpService otpService) {
+    public VulnerableOtpController(OtpService otpService, UserRepository userRepository,
+                                   VulnerableJwtUtil vulnerableJwtUtil) {
         this.otpService = otpService;
+        this.userRepository = userRepository;
+        this.vulnerableJwtUtil = vulnerableJwtUtil;
     }
 
     @PostMapping("/generate")
@@ -58,6 +66,19 @@ public class VulnerableOtpController {
             @Parameter(description = "4-digit OTP guess", example = "0000") @RequestParam String otp) {
         // BAD: No rate limiting, no attempt counter, no lockout
         boolean valid = otpService.verifyWeak(username, otp);
-        return Map.of("valid", valid);
+        if (!valid) {
+            return Map.of("valid", false);
+        }
+
+        AppUser user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return Map.of("valid", false, "error", "User not found");
+        }
+
+        // BAD: Issues a weak JWT (no expiry, brute-forceable secret)
+        String token = vulnerableJwtUtil.generateToken(
+                username, user.getRole().name(), user.getId(),
+                user.getFirstName(), user.getLastName(), user.getPhoneNumber());
+        return Map.of("valid", true, "token", token);
     }
 }

@@ -1,5 +1,9 @@
 package com.owaspdemo.a06_insecure_design;
 
+import com.owaspdemo.a07_authentication_failures.SecureJwtUtil;
+import com.owaspdemo.common.model.AppUser;
+import com.owaspdemo.common.repository.UserRepository;
+import com.owaspdemo.config.RedisLoginCacheService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,10 +23,18 @@ public class SecureOtpController {
 
     private final OtpService otpService;
     private final RateLimiter rateLimiter;
+    private final UserRepository userRepository;
+    private final SecureJwtUtil secureJwtUtil;
+    private final RedisLoginCacheService redisLoginCacheService;
 
-    public SecureOtpController(OtpService otpService, RateLimiter rateLimiter) {
+    public SecureOtpController(OtpService otpService, RateLimiter rateLimiter,
+                               UserRepository userRepository, SecureJwtUtil secureJwtUtil,
+                               RedisLoginCacheService redisLoginCacheService) {
         this.otpService = otpService;
         this.rateLimiter = rateLimiter;
+        this.userRepository = userRepository;
+        this.secureJwtUtil = secureJwtUtil;
+        this.redisLoginCacheService = redisLoginCacheService;
     }
 
     @PostMapping("/generate")
@@ -82,6 +94,21 @@ public class SecureOtpController {
 
         rateLimiter.reset(username);
         otpService.invalidate(username);
-        return ResponseEntity.ok(Map.of("valid", true, "message", "OTP verified successfully"));
+
+        AppUser user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("valid", false, "error", "User not found"));
+        }
+
+        String token = secureJwtUtil.generateToken(
+                username, user.getRole().name(), user.getId(),
+                user.getFirstName(), user.getLastName(), user.getPhoneNumber());
+        redisLoginCacheService.cacheLoginToken(username, token);
+
+        return ResponseEntity.ok(Map.of(
+                "valid", true,
+                "token", token,
+                "message", "OTP verified successfully. Use this token for authenticated requests."));
     }
 }
