@@ -45,14 +45,14 @@ public class DataInitializer implements CommandLineRunner {
         ));
 
         productRepository.saveAll(List.of(
-            new Product("MacBook Pro 16\"",   "Apple M3 Max, 36GB RAM",       new BigDecimal("3499.00")),
-            new Product("ThinkPad X1 Carbon", "Intel i7, 32GB RAM, 1TB SSD",  new BigDecimal("1899.00")),
-            new Product("Dell XPS 15",        "Intel i9, 64GB RAM",           new BigDecimal("2599.00")),
-            new Product("Magic Keyboard",     "Apple wireless keyboard",       new BigDecimal("299.00")),
-            new Product("Samsung Monitor 32\"","4K UHD, USB-C",               new BigDecimal("549.00")),
-            new Product("Logitech MX Master", "Wireless ergonomic mouse",     new BigDecimal("99.00")),
-            new Product("AirPods Pro",        "Active noise cancellation",    new BigDecimal("249.00")),
-            new Product("Standing Desk",      "Electric adjustable height",   new BigDecimal("699.00"))
+            new Product("MacBook Pro 16\"",   "Apple M3 Max, 36GB RAM",       "3499.00"),
+            new Product("ThinkPad X1 Carbon", "Intel i7, 32GB RAM, 1TB SSD",  "1899.00"),
+            new Product("Dell XPS 15",        "Intel i9, 64GB RAM",           "2599.00"),
+            new Product("Magic Keyboard",     "Apple wireless keyboard",       "299.00"),
+            new Product("Samsung Monitor 32\"","4K UHD, USB-C",               "549.00"),
+            new Product("Logitech MX Master", "Wireless ergonomic mouse",     "99.00"),
+            new Product("AirPods Pro",        "Active noise cancellation",    "249.00"),
+            new Product("Standing Desk",      "Electric adjustable height",   "699.00")
         ));
 
         // Seed sample tickets — userId 2 = alice, userId 3 = bob
