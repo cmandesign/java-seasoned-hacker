@@ -2,13 +2,15 @@ package com.owaspdemo.a06_insecure_design;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/secure/otp")
@@ -24,25 +26,42 @@ public class SecureOtpController {
     }
 
     @PostMapping("/generate")
-    @Operation(summary = "Generate 6-digit OTP (5-min expiry, max 5 attempts)")
-    public Map<String, String> generate() {
-        String sessionId = UUID.randomUUID().toString();
-        String otp = otpService.generateStrong(sessionId);
-        return Map.of(
-                "sessionId", sessionId,
+    @Operation(
+            summary = "Generate 6-digit OTP (5-min expiry, max 5 attempts)",
+            description = "Accepts a username and generates a secure 6-digit OTP with 5-minute expiry and attempt lockout.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(example = "{\"username\": \"alice\"}"),
+                            examples = @ExampleObject(value = "{\"username\": \"alice\"}")
+                    )
+            )
+    )
+    public ResponseEntity<Map<String, String>> generate(@RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        if (username == null || username.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "username is required"));
+        }
+        String otp = otpService.generateStrong(username);
+        return ResponseEntity.ok(Map.of(
+                "username", username,
                 "message", "OTP sent via SMS (for demo: OTP is " + otp + ")",
                 "note", "6 digits, 5-min expiry, max 5 attempts before lockout"
-        );
+        ));
     }
 
     @PostMapping("/verify")
-    @Operation(summary = "Verify OTP (max 5 attempts then 429 lockout)")
+    @Operation(
+            summary = "Verify OTP (max 5 attempts then 429 lockout)",
+            description = "Verifies the 6-digit OTP for the given username. Locks out after 5 failed attempts."
+    )
     public ResponseEntity<Map<String, Object>> verify(
-            @Parameter(description = "Session ID from generate", example = "550e8400-e29b-41d4-a716-446655440000") @RequestParam String sessionId,
+            @Parameter(description = "Username the OTP was generated for", example = "alice") @RequestParam String username,
             @Parameter(description = "6-digit OTP guess", example = "000000") @RequestParam String otp) {
         // GOOD: Check rate limit before processing
-        if (rateLimiter.isBlocked(sessionId)) {
-            otpService.invalidate(sessionId);
+        if (rateLimiter.isBlocked(username)) {
+            otpService.invalidate(username);
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                     .body(Map.of(
                             "valid", false,
@@ -50,19 +69,19 @@ public class SecureOtpController {
                     ));
         }
 
-        boolean valid = otpService.verifyStrong(sessionId, otp);
+        boolean valid = otpService.verifyStrong(username, otp);
 
         if (!valid) {
-            rateLimiter.recordAttempt(sessionId);
-            int remaining = 5 - rateLimiter.getAttempts(sessionId);
+            rateLimiter.recordAttempt(username);
+            int remaining = 5 - rateLimiter.getAttempts(username);
             return ResponseEntity.ok(Map.of(
                     "valid", false,
                     "attemptsRemaining", Math.max(remaining, 0)
             ));
         }
 
-        rateLimiter.reset(sessionId);
-        otpService.invalidate(sessionId);
+        rateLimiter.reset(username);
+        otpService.invalidate(username);
         return ResponseEntity.ok(Map.of("valid", true, "message", "OTP verified successfully"));
     }
 }
