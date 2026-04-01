@@ -68,8 +68,7 @@ public class DataInitializer implements CommandLineRunner {
         // Seed sample feedback — includes an XSS payload for demo
         feedbackRepository.saveAll(List.of(
             new Feedback("alice", "Love this platform! Very easy to use."),
-            new Feedback("bob", "Could you add dark mode? That would be great."),
-            new Feedback("bob", "<img src=x onerror=\"alert('XSS from feedback!')\"> Nice site!")
+            new Feedback("bob", "Could you add dark mode? That would be great.")
         ));
     }
 }
