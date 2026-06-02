@@ -56,7 +56,10 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_VM_HOST: ${VM_HOST:?VM_HOST must be set}
     container_name: owasp-demo-frontend
     ports:
       - "80:80"
