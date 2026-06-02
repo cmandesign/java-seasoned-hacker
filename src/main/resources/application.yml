@@ -29,6 +29,10 @@ server:
     include-stacktrace: never
     include-message: never
 
+app:
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN:https://${VM_HOST:localhost}}
+
 management:
   endpoints:
     web:

@@ -12,7 +12,7 @@ export const useApi = () => {
 };
 
 const VM_HOST = import.meta.env.VITE_VM_HOST || 'localhost';
-const API_BASE_URL = `https://${VM_HOST}:8085`;
+const API_BASE_URL = `https://${VM_HOST}`;
 
 export const ApiProvider = ({ children }) => {
   const [apiMode, setApiMode] = useState('vulnerable');
