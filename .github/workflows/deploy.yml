@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.VM_USERNAME }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_PORT || 22 }}
-          source: "Dockerfile,docker-compose.yml,pom.xml,src/,frontend/,filebeat.Dockerfile,filebeat.yml,elastalert/,myapp/"
+          source: "Dockerfile,docker-compose.yml,pom.xml,src/,frontend/,filebeat.Dockerfile,filebeat.yml,elastalert/,myapp/,init-ssl.sh"
           target: "/opt/owasp-demo/"
 
       - name: Deploy with docker-compose
@@ -30,20 +30,29 @@ jobs:
           username: ${{ secrets.VM_USERNAME }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_PORT || 22 }}
-          envs: DB_NAME,DB_USERNAME,DB_PASSWORD
+          envs: DB_NAME,DB_USERNAME,DB_PASSWORD,VM_HOST,CERT_EMAIL
           script: |
             cd /opt/owasp-demo
             cat > .env <<EOL
             DB_NAME=${DB_NAME}
             DB_USERNAME=${DB_USERNAME}
             DB_PASSWORD=${DB_PASSWORD}
+            VM_HOST=${VM_HOST}
             EOL
             chmod 600 .env
             docker-compose down
             docker-compose build --no-cache
+            # Provision SSL certificate if not already present
+            if [ ! -d "/var/lib/docker/volumes/owasp-demo_certbot-certs/_data/live/${VM_HOST}" ]; then
+              export CERT_EMAIL="${CERT_EMAIL}"
+              chmod +x init-ssl.sh
+              bash init-ssl.sh
+            fi
             docker-compose up -d
             docker-compose ps
         env:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+          CERT_EMAIL: ${{ secrets.CERT_EMAIL }}
