@@ -11,24 +11,25 @@ export const useApi = () => {
   return context;
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085';
+
 export const ApiProvider = ({ children }) => {
   const [apiMode, setApiMode] = useState('vulnerable');
 
   const apiConfigs = {
     secure: {
-      baseURL: '',
+      baseURL: API_BASE_URL,
       label: 'Secure APIs',
       description: 'Production-ready endpoints with security'
     },
     vulnerable: {
-      baseURL: '',
+      baseURL: API_BASE_URL,
       label: 'Vulnerable APIs',
       description: 'Intentionally vulnerable endpoints for testing'
     }
   };
 
   useEffect(() => {
-    // Update axios base URL when apiMode changes
     axios.defaults.baseURL = apiConfigs[apiMode].baseURL;
   }, [apiMode]);
 
