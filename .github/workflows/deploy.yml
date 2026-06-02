@@ -42,11 +42,24 @@ jobs:
             chmod 600 .env
             docker compose down
             docker compose build --no-cache
-            # Provision SSL certificate if not already present
-            if [ ! -d "/var/lib/docker/volumes/owasp-demo_certbot-certs/_data/live/${VM_HOST}" ]; then
+            # Provision SSL certificate if missing or self-signed
+            CERT_PATH="/var/lib/docker/volumes/owasp-demo_certbot-certs/_data/live/${VM_HOST}/fullchain.pem"
+            NEEDS_CERT=true
+            if [ -f "$CERT_PATH" ]; then
+              if openssl x509 -in "$CERT_PATH" -noout -issuer 2>/dev/null | grep -qi "Let's Encrypt\|R3\|R10\|R11\|E5\|E6"; then
+                NEEDS_CERT=false
+              fi
+            fi
+            if [ "$NEEDS_CERT" = true ]; then
+              echo "==> SSL certificate missing or not from Let's Encrypt, provisioning..."
+              # Clean up any stale certs in the volume
+              CERT_VOL="/var/lib/docker/volumes/owasp-demo_certbot-certs/_data"
+              rm -rf "${CERT_VOL}/live/${VM_HOST}" "${CERT_VOL}/archive/${VM_HOST}" "${CERT_VOL}/renewal/${VM_HOST}.conf" 2>/dev/null || true
               export CERT_EMAIL="${CERT_EMAIL}"
               chmod +x init-ssl.sh
               bash init-ssl.sh
+            else
+              echo "==> Valid Let's Encrypt certificate found, skipping provisioning."
             fi
             docker compose up -d
             docker compose ps
