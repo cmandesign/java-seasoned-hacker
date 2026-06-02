@@ -59,7 +59,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://${VM_HOST}:8085}
+        VITE_VM_HOST: ${VM_HOST:?VM_HOST must be set}
     container_name: owasp-demo-frontend
     ports:
       - "80:80"
