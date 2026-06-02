@@ -61,11 +61,28 @@ services:
     build: ./frontend
     container_name: owasp-demo-frontend
     ports:
-      - "3000:80"
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${VM_HOST:?VM_HOST must be set}
+    volumes:
+      - certbot-certs:/etc/nginx/certs:ro
+      - certbot-webroot:/var/www/certbot:ro
     depends_on:
       - app
     networks:
       - owasp-net
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot
+    container_name: owasp-demo-certbot
+    volumes:
+      - certbot-certs:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    networks:
+      - owasp-net
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done'"
     restart: unless-stopped
 
   # --- ELK Stack for activity log monitoring ---
@@ -133,3 +150,5 @@ services:
 volumes:
   pgdata:
   applogs:
+  certbot-certs:
+  certbot-webroot:
