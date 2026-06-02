@@ -31,6 +31,13 @@ docker compose run --rm --entrypoint "" certbot sh -c "
 echo "==> Starting Nginx for ACME challenge on port 80..."
 docker compose up -d frontend
 
+echo "==> Removing temporary self-signed certificate..."
+docker compose run --rm --entrypoint "" certbot sh -c "
+  rm -rf /etc/letsencrypt/live/${VM_HOST} &&
+  rm -rf /etc/letsencrypt/archive/${VM_HOST} &&
+  rm -rf /etc/letsencrypt/renewal/${VM_HOST}.conf
+"
+
 echo "==> Requesting certificate for ${VM_HOST}..."
 docker compose run --rm --entrypoint "" certbot certbot certonly \
   --webroot -w /var/www/certbot \

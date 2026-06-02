@@ -40,16 +40,16 @@ jobs:
             VM_HOST=${VM_HOST}
             EOL
             chmod 600 .env
-            docker-compose down
-            docker-compose build --no-cache
+            docker compose down
+            docker compose build --no-cache
             # Provision SSL certificate if not already present
             if [ ! -d "/var/lib/docker/volumes/owasp-demo_certbot-certs/_data/live/${VM_HOST}" ]; then
               export CERT_EMAIL="${CERT_EMAIL}"
               chmod +x init-ssl.sh
               bash init-ssl.sh
             fi
-            docker-compose up -d
-            docker-compose ps
+            docker compose up -d
+            docker compose ps
         env:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
