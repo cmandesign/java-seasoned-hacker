@@ -17,11 +17,22 @@ if [ "${CERT_STAGING:-0}" = "1" ]; then
   STAGING_FLAG="--staging"
 fi
 
+CERT_DIR="/etc/letsencrypt/live/${VM_HOST}"
+
+echo "==> Creating temporary self-signed certificate so Nginx can start..."
+docker compose run --rm --entrypoint "" certbot sh -c "
+  mkdir -p ${CERT_DIR} &&
+  openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+    -keyout ${CERT_DIR}/privkey.pem \
+    -out ${CERT_DIR}/fullchain.pem \
+    -subj '/CN=localhost'
+"
+
 echo "==> Starting Nginx for ACME challenge on port 80..."
 docker compose up -d frontend
 
 echo "==> Requesting certificate for ${VM_HOST}..."
-docker compose run --rm certbot certbot certonly \
+docker compose run --rm --entrypoint "" certbot certbot certonly \
   --webroot -w /var/www/certbot \
   -d "${VM_HOST}" \
   $EMAIL_FLAG \
@@ -29,7 +40,7 @@ docker compose run --rm certbot certbot certonly \
   --agree-tos \
   --force-renewal
 
-echo "==> Reloading Nginx to pick up the new certificate..."
+echo "==> Reloading Nginx to pick up the real certificate..."
 docker compose exec frontend nginx -s reload
 
 echo "==> Done. HTTPS is now active for ${VM_HOST}."
