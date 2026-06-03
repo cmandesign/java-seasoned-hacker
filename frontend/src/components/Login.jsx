@@ -33,10 +33,7 @@ const Login = () => {
   return (
     <div className="app-container">
       <div className="auth-container">
-        <h1 className="text-center mb-3">OWASP Demo</h1>
-        <p className="text-center text-muted mb-3">
-          Sign in to {currentConfig.label.toLowerCase()}
-        </p>
+        <h1 className="text-center mb-3">OWASP 2026 Top 10 Demo</h1>
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
