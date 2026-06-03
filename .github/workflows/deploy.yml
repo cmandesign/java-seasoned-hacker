@@ -4,14 +4,21 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or commit SHA to deploy'
+        required: false
+        default: ''
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: Prod 
+    environment: Prod
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
 
       - name: Copy files to VM
         uses: appleboy/scp-action@v0.1.7
