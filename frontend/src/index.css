@@ -31,15 +31,9 @@ body {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.app-container:has(> .auth-container) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .auth-container {
   max-width: 400px;
-  width: 100%;
+  margin: 50px auto;
   padding: 2rem;
   background: white;
   border-radius: 12px;
@@ -249,6 +243,7 @@ body {
 
   .auth-container {
     margin: 20px;
+    padding: 1.5rem;
   }
 
   .grid {

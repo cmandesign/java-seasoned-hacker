@@ -44,7 +44,6 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
-      VM_HOST: ${VM_HOST:?VM_HOST must be set}
     volumes:
       - applogs:/app/myapp
     depends_on:
@@ -57,10 +56,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_VM_HOST: ${VM_HOST:?VM_HOST must be set}
+    build: ./frontend
     container_name: owasp-demo-frontend
     ports:
       - "80:80"

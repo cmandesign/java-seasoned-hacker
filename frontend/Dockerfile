@@ -1,6 +1,4 @@
 FROM node:20-alpine AS build
-ARG VITE_VM_HOST
-ENV VITE_VM_HOST=${VITE_VM_HOST}
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
