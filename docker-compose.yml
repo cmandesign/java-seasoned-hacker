@@ -138,6 +138,8 @@ services:
   elastalert:
     image: jertel/elastalert2:latest
     container_name: owasp-demo-elastalert
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL must be set}
     volumes:
       - ./elastalert/config.yaml:/opt/elastalert/config.yaml:ro
       - ./elastalert/rules:/opt/elastalert/rules:ro
