@@ -111,6 +111,8 @@ services:
       - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a7f3c9b2e1d4f6a8c0b2d4f6a8c0b2d4
       - XPACK_REPORTING_ENCRYPTIONKEY=b8d4f6a2c0e4f8b2d4f6a8c0b2d4f6a8
       - XPACK_SECURITY_ENCRYPTIONKEY=c0b2d4f6a8e0b2d4f6a8c0b2d4f6a8c0
+      - SERVER_BASEPATH=/kibana
+      - SERVER_REWRITEBASEPATH=true
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -136,6 +138,8 @@ services:
   elastalert:
     image: jertel/elastalert2:latest
     container_name: owasp-demo-elastalert
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL must be set}
     volumes:
       - ./elastalert/config.yaml:/opt/elastalert/config.yaml:ro
       - ./elastalert/rules:/opt/elastalert/rules:ro
