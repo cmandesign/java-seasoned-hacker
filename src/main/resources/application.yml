@@ -25,6 +25,7 @@ spring:
       max-request-size: 5MB
 
 server:
+  forward-headers-strategy: framework
   error:
     include-stacktrace: never
     include-message: never
