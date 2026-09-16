@@ -64,7 +64,7 @@ services:
     environment:
       - DOMAIN=${VM_HOST:?VM_HOST must be set}
     volumes:
-      - certbot-certs:/etc/nginx/certs:ro
+      - certbot-certs:/etc/nginx/certs
       - certbot-webroot:/var/www/certbot:ro
     depends_on:
       - app
