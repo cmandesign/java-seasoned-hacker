@@ -11,5 +11,3 @@ if [ ! -f "${CERT_DIR}/fullchain.pem" ] || [ ! -f "${CERT_DIR}/privkey.pem" ]; t
     -out "${CERT_DIR}/fullchain.pem" \
     -subj "/CN=${DOMAIN}"
 fi
-
-exec "$@"
