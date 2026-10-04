@@ -1,0 +1,76 @@
+# =============================================================================
+# DELIBERATE MISCONFIGURATION #1 (hop 1 of the lab)
+# =============================================================================
+# The application connects to PostgreSQL as the user `owasp`, which the official
+# postgres image creates as a SUPERUSER. A superuser can run
+# `COPY ... FROM PROGRAM '<cmd>'`, which executes <cmd> on the database server
+# host -- i.e. inside THIS pod. That is what upgrades a SQL injection into
+# remote code execution in the Postgres pod.
+#
+# Remediation (README.md): connect with a least-privilege role that owns only the
+# application tables and has no superuser / no pg_execute_server_program.
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+  namespace: vuln-lab
+type: Opaque
+stringData:
+  POSTGRES_USER: owasp
+  POSTGRES_PASSWORD: changeme
+  POSTGRES_DB: owaspdb
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: vuln-lab
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      # <-- the over-privileged identity (see 10-postgres-rbac.yaml)
+      serviceAccountName: postgres-sa
+      automountServiceAccountToken: true
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres-credentials
+          # The alpine image lacks a package manager cache; the attack path only
+          # needs /bin/sh + cat, which are present, so no extra tooling is required.
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U owasp -d owaspdb"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: vuln-lab
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

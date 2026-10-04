@@ -1,0 +1,31 @@
+# =============================================================================
+# DELIBERATE MISCONFIGURATION #2 (hop 2 -> 3 of the lab)
+# =============================================================================
+# The PostgreSQL pod runs under a ServiceAccount whose token is bound to the
+# built-in `cluster-admin` ClusterRole. Combined with automountServiceAccountToken
+# (the default), any code that executes inside the Postgres pod can read
+# /var/run/secrets/kubernetes.io/serviceaccount/token and wield full control of
+# the cluster API.
+#
+# This is the single bug that turns "shell in one pod" into "root on the node".
+# Remediation is in k8s-lab/README.md: give workloads a dedicated SA with NO
+# cluster-admin binding (ideally automountServiceAccountToken: false).
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgres-sa
+  namespace: vuln-lab
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: postgres-sa-cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: postgres-sa
+    namespace: vuln-lab
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io

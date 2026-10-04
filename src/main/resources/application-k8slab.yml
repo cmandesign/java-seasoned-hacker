@@ -1,0 +1,19 @@
+# k8s-lab profile: activates the deliberately vulnerable SQLi->RCE sink
+# (com.owaspdemo.a05_injection.LabRceController) for the lateral-movement lab.
+# Connection details come from the Deployment's env (SPRING_DATASOURCE_*).
+spring:
+  jpa:
+    hibernate:
+      # Let the app create the product table in the lab database on boot.
+      ddl-auto: create-drop
+  data:
+    redis:
+      # The lab does not run Redis; disable the repositories' auto health probing.
+      repositories:
+        enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

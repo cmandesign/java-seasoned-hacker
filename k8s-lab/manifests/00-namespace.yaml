@@ -1,0 +1,9 @@
+# Namespace for the lateral-movement lab. Everything deliberately insecure
+# lives here so it is easy to tear the whole thing down with one `kubectl delete ns`.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vuln-lab
+  labels:
+    purpose: security-training
+    warning: intentionally-vulnerable
