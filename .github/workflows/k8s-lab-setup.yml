@@ -1,0 +1,88 @@
+name: K8s Lab Setup (plain VM)
+
+# Stands up the intentionally-vulnerable lateral-movement lab (k8s-lab/) on a
+# plain VM using single-node k3s. The app image is built here on the runner and
+# shipped to the VM as a tarball, so the VM itself needs NO Docker -- only SSH
+# access and outbound internet (to install k3s).
+#
+# ⚠️ This deploys a DELIBERATELY VULNERABLE Kubernetes cluster. Point it only at a
+#    disposable VM you control and never expose it to an untrusted network.
+#
+# Manual trigger only: you never want an intentionally-insecure cluster
+# redeploying itself on every push.
+on:
+  workflow_dispatch:
+    inputs:
+      run_attack_demo:
+        description: "Run the end-to-end SQLi->pod->node-root PoC after deploy"
+        type: boolean
+        default: false
+
+# Reuses the same VM secrets as deploy.yml:
+#   VM_HOST, VM_USERNAME, VM_SSH_KEY, VM_PORT (optional, defaults to 22)
+# The VM user must have passwordless sudo (k3s install + containerd import need root).
+permissions:
+  contents: read
+
+jobs:
+  setup-lab:
+    name: Build image & deploy lab to VM
+    runs-on: ubuntu-latest
+    environment: Prod
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the vulnerable app image
+        run: docker build -t vuln-lab/owasp-app:latest .
+
+      - name: Export image to a tarball
+        run: docker save vuln-lab/owasp-app:latest -o owasp-app.tar
+
+      - name: Copy lab files and image to the VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_PORT || 22 }}
+          source: "k8s-lab/**,owasp-app.tar"
+          target: "/opt/vuln-lab/"
+
+      - name: Install k3s, import image, and deploy the lab
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_PORT || 22 }}
+          envs: RUN_ATTACK_DEMO
+          script: |
+            set -euo pipefail
+            cd /opt/vuln-lab
+            chmod +x k8s-lab/scripts/*.sh
+
+            echo "==> Installing single-node k3s (if not already present)..."
+            ./k8s-lab/scripts/setup-k3s.sh
+
+            echo "==> Importing the prebuilt app image into k3s containerd..."
+            sudo k3s ctr images import owasp-app.tar
+            rm -f owasp-app.tar
+
+            echo "==> Deploying the lab (postgres + redis + vulnerable app)..."
+            KUBECTL='sudo kubectl' ./k8s-lab/scripts/deploy.sh
+
+            if [ "${RUN_ATTACK_DEMO}" = "true" ]; then
+              echo "==> Running the end-to-end attack PoC..."
+              if ! command -v curl >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
+                sudo apt-get update && sudo apt-get install -y curl python3
+              fi
+              KUBECTL='sudo kubectl' ./k8s-lab/scripts/attack-demo.sh
+            fi
+
+            echo "==> Done. Vulnerable app is on NodePort 30080 of this VM."
+        env:
+          RUN_ATTACK_DEMO: ${{ inputs.run_attack_demo }}
