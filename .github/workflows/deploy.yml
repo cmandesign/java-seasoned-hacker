@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      skip_elasticsearch:
+        description: "Skip deploying Elasticsearch (and Kibana, Filebeat, ElastAlert, which depend on it)"
+        type: boolean
+        default: false
 
 jobs:
   deploy:
@@ -30,18 +35,26 @@ jobs:
           username: ${{ secrets.VM_USERNAME }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_PORT || 22 }}
-          envs: DB_NAME,DB_USERNAME,DB_PASSWORD,VM_HOST,CERT_EMAIL,SLACK_WEBHOOK_URL
+          envs: DB_NAME,DB_USERNAME,DB_PASSWORD,VM_HOST,CERT_EMAIL,SLACK_WEBHOOK_URL,SKIP_ELASTICSEARCH
           script: |
             cd /opt/owasp-demo
+            if [ "${SKIP_ELASTICSEARCH}" = "true" ]; then
+              echo "==> SKIP_ELASTICSEARCH=true, ELK stack will not be deployed."
+              PROFILES=""
+            else
+              PROFILES="elk"
+            fi
             cat > .env <<EOL
             DB_NAME=${DB_NAME}
             DB_USERNAME=${DB_USERNAME}
             DB_PASSWORD=${DB_PASSWORD}
             VM_HOST=${VM_HOST}
             SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+            COMPOSE_PROFILES=${PROFILES}
             EOL
             chmod 600 .env
-            docker compose down
+            # Tear down every service, including ELK containers from a previous deploy
+            COMPOSE_PROFILES=elk docker compose down
             docker compose build --no-cache
             # Provision SSL certificate if missing or self-signed
             CERT_PATH="/var/lib/docker/volumes/owasp-demo_certbot-certs/_data/live/${VM_HOST}/fullchain.pem"
@@ -71,3 +84,5 @@ jobs:
           VM_HOST: ${{ secrets.VM_HOST }}
           CERT_EMAIL: ${{ secrets.CERT_EMAIL }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          # Manual runs use the checkbox; pushes fall back to the SKIP_ELASTICSEARCH repo variable
+          SKIP_ELASTICSEARCH: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.skip_elasticsearch) || vars.SKIP_ELASTICSEARCH || 'false' }}

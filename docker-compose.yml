@@ -84,9 +84,12 @@ services:
     restart: unless-stopped
 
   # --- ELK Stack for activity log monitoring ---
+  # These services only start when the "elk" profile is active
+  # (COMPOSE_PROFILES=elk or `docker compose --profile elk up`).
 
   elasticsearch:
     image: elasticsearch:8.12.0
+    profiles: ["elk"]
     container_name: owasp-demo-elasticsearch
     environment:
       - discovery.type=single-node
@@ -103,6 +106,7 @@ services:
 
   kibana:
     image: kibana:8.12.0
+    profiles: ["elk"]
     container_name: owasp-demo-kibana
     ports:
       - "5601:5601"
@@ -120,6 +124,7 @@ services:
       - owasp-net
 
   filebeat:
+    profiles: ["elk"]
     build:
       context: .
       dockerfile: filebeat.Dockerfile
@@ -137,6 +142,7 @@ services:
 
   elastalert:
     image: jertel/elastalert2:latest
+    profiles: ["elk"]
     container_name: owasp-demo-elastalert
     environment:
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:?SLACK_WEBHOOK_URL must be set}
