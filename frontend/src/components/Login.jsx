@@ -77,12 +77,6 @@ const Login = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="info-box">
-          <h3>Demo Credentials</h3>
-          <p><strong>Admin:</strong> admin / Admin123!</p>
-          <p><strong>User:</strong> alice / Alice123!</p>
-        </div>
       </div>
     </div>
   );
