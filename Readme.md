@@ -265,3 +265,14 @@ src/main/java/com/owaspdemo/
 | A08 | Software/Data Integrity Failures | Unsafe deserialization + unverified webhooks |
 | A09 | Security Logging & Alerting Failures | Silent vs. structured audit logging |
 | A10 | Mishandling of Exceptional Conditions | Exception swallowing in payment flow |
+
+## Docker Compose & ELK
+
+The ELK services (Elasticsearch, Kibana, Filebeat, ElastAlert) are in the `elk` compose profile:
+
+```bash
+docker compose --profile elk up -d   # full stack with ELK
+docker compose up -d                 # without Elasticsearch / ELK
+```
+
+In the **Build and Deploy** workflow, tick **Skip deploying Elasticsearch** on a manual run, or set the repository variable `SKIP_ELASTICSEARCH=true` to skip it on push deploys. When ELK is skipped, `/kibana/` returns 502.
